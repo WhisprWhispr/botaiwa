@@ -262,6 +262,21 @@ app.post('/api/bots', async (req, res) => {
     res.json({ ok: true, botId: safeId });
 });
 
+app.post('/api/bots/delete-all', async (req, res) => {
+    try {
+        const botIds = Object.keys(bots);
+        for (const id of botIds) {
+            const bot = bots[id];
+            try { await bot.client.logout(); } catch(e){}
+            try { await bot.client.destroy(); } catch(e){}
+            delete bots[id];
+        }
+        res.json({ ok: true, message: 'Semua client dihapus' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/api/status/:id', (req, res) => {
     const bot = bots[req.params.id];
     if (!bot) return res.status(404).json({ error: 'Not found' });

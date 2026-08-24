@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SukaCoding — Sambungkan WhatsApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #060B19;
+      color: #F8FAFC;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-image: radial-gradient(circle at top, rgba(56,189,248,0.1) 0%, transparent 50%), radial-gradient(circle at bottom, rgba(139,92,246,0.1) 0%, transparent 50%);
+    }
+    .card {
+      background: rgba(18, 30, 56, 0.4);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 90%;
+    }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #F8FAFC; }
+    p.sub { font-size: 15px; color: #94A3B8; margin-bottom: 30px; }
+    #qr-container {
+      min-height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #qr-img {
+      width: 250px; height: 250px;
+      border-radius: 20px;
+      border: 4px solid #38BDF8;
+      padding: 10px; background: white;
+      display: none;
+    }
+    .placeholder {
+      width: 250px; height: 250px;
+      border-radius: 20px;
+      border: 2px dashed rgba(56,189,248,0.4);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #94A3B8;
+    }
+    .placeholder span { font-size: 40px; margin-bottom: 10px; }
+    .success {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .success .check {
+      font-size: 70px;
+      filter: drop-shadow(0 0 20px rgba(16,185,129,0.4));
+      margin-bottom: 16px;
+    }
+    #timer { font-size: 14px; color: #475569; }
+    #timer span { color: #38BDF8; font-weight: bold; }
+    .footer { font-size: 12px; color: #475569; margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div style="font-family: monospace; font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #38BDF8, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px;">
+      &lt;/&gt;
+    </div>
+    <h1>Koneksi WhatsApp</h1>
+    <p class="sub">Silakan scan QR Code di bawah menggunakan WhatsApp di HP kamu (Perangkat Taut).</p>
+    
+    <div id="qr-container">
+      <div class="placeholder" id="placeholder">
+        <span>⏳</span>
+        <p>Memuat QR Code...</p>
+      </div>
+      <img id="qr-img" src="" alt="QR Code" />
+      <div class="success" id="success">
+        <div class="check">✅</div>
+        <h2>Berhasil Terhubung!</h2>
+        <p style="color: #94A3B8; font-size: 14px; margin-top: 8px;">Bot sudah siap digunakan.</p>
+      </div>
+    </div>
+
+    <div id="timer">Refresh otomatis dalam <span id="countdown">30</span>s</div>
+    
+    <div class="footer">SukaCoding AI Bot Service</div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const botId = urlParams.get('bot');
+    
+    if (!botId) {
+      document.getElementById('placeholder').innerHTML = '<span style="font-size:30px">❌</span><p>ID Bot tidak valid</p>';
+      document.getElementById('timer').style.display = 'none';
+    } else {
+      let timerVal = 30;
+      let interval = null;
+
+      async function checkQR() {
+        try {
+          const res = await fetch(`/api/qr/${botId}`);
+          if (!res.ok) throw new Error('Bot not found');
+          const data = await res.json();
+          
+          if (data.connected) {
+            document.getElementById('placeholder').style.display = 'none';
+            document.getElementById('qr-img').style.display = 'none';
+            document.getElementById('success').style.display = 'flex';
+            document.getElementById('timer').style.display = 'none';
+            if(interval) clearInterval(interval);
+          } else if (data.qr) {
+            document.getElementById('placeholder').style.display = 'none';
+            document.getElementById('qr-img').src = data.qr;
+            document.getElementById('qr-img').style.display = 'block';
+            resetTimer();
+          } else {
+            // QR belum siap
+            document.getElementById('placeholder').style.display = 'flex';
+            document.getElementById('qr-img').style.display = 'none';
+          }
+        } catch (err) {
+          document.getElementById('placeholder').innerHTML = '<span style="font-size:30px">❌</span><p>Bot tidak ditemukan atau offline</p>';
+          document.getElementById('timer').style.display = 'none';
+        }
+      }
+
+      function resetTimer() {
+        if(interval) clearInterval(interval);
+        timerVal = 30;
+        document.getElementById('countdown').innerText = timerVal;
+        interval = setInterval(() => {
+          timerVal--;
+          document.getElementById('countdown').innerText = timerVal;
+          if(timerVal <= 0) {
+            clearInterval(interval);
+            checkQR();
+          }
+        }, 1000);
+      }
+
+      // Initial check
+      checkQR();
+      
+      // Auto ping status if connected to prevent stale UI
+      setInterval(async () => {
+         const res = await fetch(`/api/status/${botId}`);
+         const d = await res.json();
+         if(d.connected) checkQR(); // Will show success UI
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

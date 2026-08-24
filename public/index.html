@@ -134,6 +134,7 @@
         <!-- List bot akan dimuat di sini -->
       </div>
       <button class="btn-create" onclick="createNewBot()">➕ Buat Bot Baru</button>
+      <button class="btn-create" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); margin-top: 10px;" onclick="deleteAllBots()">🗑 Hapus Semua Client</button>
     </div>
 
     <!-- Main Content -->
@@ -167,6 +168,7 @@
               <h3 style="font-size:18px;">Terhubung!</h3>
             </div>
           </div>
+          <button class="btn" style="width: 100%; margin-top: 20px; background: rgba(56,189,248,0.1); color: var(--cyan); border-color: rgba(56,189,248,0.3);" onclick="copyClientLink()">🔗 Salin Link Scan Klien</button>
         </div>
 
         <!-- Controls -->
@@ -273,6 +275,32 @@
         selectBot(data.botId || name);
       }
     } catch(e) { showToast('❌ Gagal membuat bot'); }
+  }
+
+  function copyClientLink() {
+    if(!activeBotId) return;
+    const url = window.location.origin + '/scan.html?bot=' + activeBotId;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('✅ Link dicopy: ' + url);
+    }).catch(() => {
+      showToast('❌ Gagal meng-copy link');
+    });
+  }
+
+  async function deleteAllBots() {
+    if(!confirm("⚠️ PERINGATAN! Anda yakin ingin MENGHAPUS SEMUA client? Ini akan memutuskan koneksi WA semua klien!")) return;
+    showToast('⏳ Sedang menghapus semua...');
+    try {
+      // Kita panggil API hapus semua yang akan kita tambahkan di index.js
+      const res = await fetch('/api/bots/delete-all', { method: 'POST' });
+      if (res.ok) {
+        showToast('✅ Semua client berhasil dihapus');
+        selectBot(null);
+        loadBotList();
+      }
+    } catch(e) {
+      showToast('❌ Gagal menghapus semua client');
+    }
   }
 
   async function fetchStatus() {
