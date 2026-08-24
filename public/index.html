@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SukaCoding — AI Bot Dashboard</title>
-  <meta name="description" content="Dashboard kontrol WhatsApp AI Bot SukaCoding" />
+  <title>SukaCoding — AI Bot Fleet Manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #060B19; /* Very dark blue matching logo bg */
+      --bg:        #060B19;
       --surface:   rgba(18, 30, 56, 0.4);
-      --border:    rgba(56, 189, 248, 0.15); /* Light blue border */
+      --border:    rgba(56, 189, 248, 0.15);
       --cyan:      #38BDF8;
       --blue:      #3B82F6;
       --purple:    #8B5CF6;
@@ -28,236 +27,181 @@
     }
 
     html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Outfit', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Ambient Glow matching logo */
+    body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
+    
     body::before {
       content: ''; position: fixed; inset: 0;
-      background:
-        radial-gradient(circle at 20% 0%, rgba(56,189,248,0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 100%, rgba(139,92,246,0.1) 0%, transparent 50%);
+      background: radial-gradient(circle at 20% 0%, rgba(56,189,248,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 100%, rgba(139,92,246,0.1) 0%, transparent 50%);
       pointer-events: none; z-index: 0;
     }
 
-    .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+    .wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 40px 24px; width: 100%; flex: 1; }
 
     /* Header */
     .header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 40px; flex-wrap: wrap; gap: 20px;
-      padding: 24px 32px; background: rgba(18, 30, 56, 0.4);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      backdrop-filter: blur(20px);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; flex-wrap: wrap; gap: 20px;
+      padding: 24px 32px; background: rgba(18, 30, 56, 0.4); border: 1px solid var(--border); border-radius: var(--radius);
+      backdrop-filter: blur(20px); box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
     .logo { display: flex; align-items: center; gap: 16px; }
-    .logo-icon {
-      font-family: monospace; font-size: 32px; font-weight: 800;
-      background: var(--gradient);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      letter-spacing: -2px;
-    }
+    .logo-icon { font-family: monospace; font-size: 32px; font-weight: 800; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -2px; }
     .logo-text h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
     .logo-text h1 span { color: var(--cyan); }
     .logo-text p { font-size: 14px; color: var(--text2); margin-top: 2px; }
-    .header-right { display: flex; align-items: center; gap: 20px; }
-    .clock { font-size: 15px; color: var(--text2); font-weight: 500; font-variant-numeric: tabular-nums; }
+    
+    /* Layout */
+    .main-grid { display: grid; grid-template-columns: 300px 1fr; gap: 30px; align-items: start; }
+    @media(max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
 
-    /* Grid Layouts */
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 24px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-    @media(max-width: 800px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } }
-
-    /* Cards */
-    .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 32px;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Bot List Sidebar */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; backdrop-filter: blur(16px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .section-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    
+    .bot-list { display: flex; flex-direction: column; gap: 10px; max-height: 500px; overflow-y: auto; padding-right: 5px; }
+    .bot-item { 
+      padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
+      display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);
     }
-    .card:hover { border-color: rgba(56, 189, 248, 0.3); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+    .bot-item:hover { background: rgba(56,189,248,0.1); border-color: var(--cyan); }
+    .bot-item.active { background: rgba(56,189,248,0.15); border-color: var(--cyan); box-shadow: 0 0 20px rgba(56,189,248,0.2); }
+    .bot-item-name { font-weight: 600; font-size: 15px; }
+    
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .status-dot.online { background: var(--green); box-shadow: 0 0 10px var(--green); }
+    .status-dot.offline { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
 
-    /* Stats */
-    .stat-label { font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--cyan); margin-bottom: 12px; font-weight: 600; }
-    .stat-value { font-size: 40px; font-weight: 700; letter-spacing: -1px; line-height: 1; margin-bottom: 8px; }
-    .stat-sub { font-size: 14px; color: var(--text2); }
+    .btn-create { width: 100%; padding: 12px; background: var(--gradient); border: none; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; margin-top: 16px; font-family: 'Outfit', sans-serif; transition: transform 0.2s; }
+    .btn-create:active { transform: scale(0.97); }
 
-    /* Badges */
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 99px;
-      font-size: 14px; font-weight: 600; border: 1px solid;
-    }
-    .badge-green { background: rgba(16,185,129,0.1); color: var(--green); border-color: rgba(16,185,129,0.3); }
-    .badge-red { background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.3); }
-    .badge-amber { background: rgba(245,158,11,0.1); color: var(--amber); border-color: rgba(245,158,11,0.3); }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-    .pulse { animation: dot-pulse 1.5s ease-in-out infinite; }
-    @keyframes dot-pulse { 0%,100% { opacity: 1; box-shadow: 0 0 12px currentColor; } 50% { opacity: 0.4; box-shadow: none; } }
+    /* Dashboard Details */
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    @media(max-width: 600px) { .detail-grid { grid-template-columns: 1fr; } }
 
-    /* QR Section */
-    .qr-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    .qr-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-    .qr-sub { font-size: 15px; color: var(--text2); margin-bottom: 30px; }
-    #qr-wrap { min-height: 240px; display: flex; align-items: center; justify-content: center; width: 100%; }
-    #qr-img {
-      width: 240px; height: 240px; border-radius: 20px;
-      border: 3px solid var(--cyan); box-shadow: 0 0 40px rgba(56,189,248,0.2);
-      display: none; padding: 12px; background: white;
-    }
-    .qr-placeholder {
-      width: 240px; height: 240px; border-radius: 20px; border: 2px dashed rgba(56,189,248,0.4);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text2);
-    }
-    .qr-placeholder span { font-size: 48px; }
-    .qr-timer { font-size: 14px; color: var(--text3); margin-top: 24px; }
-    #countdown { font-weight: 700; color: var(--cyan); font-variant-numeric: tabular-nums; }
-    .connected-msg { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-    .check-icon { font-size: 64px; filter: drop-shadow(0 0 30px rgba(16,185,129,0.4)); }
+    .stat-label { font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--cyan); margin-bottom: 8px; font-weight: 600; }
+    .stat-value { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .stat-sub { font-size: 13px; color: var(--text2); }
 
-    /* Controls Section */
-    .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 30px; }
-    .btn {
-      display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px;
-      border-radius: 14px; font-size: 15px; font-weight: 600; border: 1px solid;
-      cursor: pointer; transition: all 0.2s; font-family: 'Outfit', sans-serif;
-      backdrop-filter: blur(8px); letter-spacing: 0.3px;
-    }
+    .qr-panel { text-align: center; }
+    .qr-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .qr-sub { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+    #qr-wrap { min-height: 220px; display: flex; align-items: center; justify-content: center; }
+    #qr-img { width: 220px; height: 220px; border-radius: 20px; border: 3px solid var(--cyan); box-shadow: 0 0 40px rgba(56,189,248,0.2); display: none; padding: 12px; background: white; }
+    .qr-placeholder { width: 220px; height: 220px; border-radius: 20px; border: 2px dashed rgba(56,189,248,0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text2); }
+    .qr-timer { font-size: 13px; color: var(--text3); margin-top: 16px; }
+    .connected-msg { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    
+    .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    .btn { padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; border: 1px solid; cursor: pointer; transition: all 0.2s; font-family: 'Outfit', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn:active { transform: scale(0.96); }
     .btn-green { background: rgba(16,185,129,0.1); color: var(--green); border-color: rgba(16,185,129,0.3); }
     .btn-red { background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.3); }
     .btn-blue { background: rgba(59,130,246,0.1); color: var(--blue); border-color: rgba(59,130,246,0.3); }
     .btn-amber { background: rgba(245,158,11,0.1); color: var(--amber); border-color: rgba(245,158,11,0.3); }
-    .btn-danger { background: rgba(239,68,68,0.05); color: var(--text); border-color: rgba(239,68,68,0.4); grid-column: span 2; }
-    .btn:hover { filter: brightness(1.25); box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-    .btn-danger:hover { background: rgba(239,68,68,0.15); border-color: var(--red); color: var(--red); }
-
-    /* Activity Log */
-    .log-header { font-size: 15px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-    #log-box { font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; color: var(--text2); height: 230px; overflow-y: auto; background: rgba(0,0,0,0.4); border-radius: 14px; padding: 18px; border: 1px solid var(--border); }
-    .log-entry { margin-bottom: 6px; }
-    .log-time { color: var(--text3); margin-right: 10px; }
-    .log-green { color: var(--green); }
-    .log-red { color: var(--red); }
-    .log-cyan { color: var(--cyan); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: #fff; border-color: var(--red); grid-column: span 2; }
+    .btn:hover { filter: brightness(1.2); }
 
     /* Footer */
-    .footer { text-align: center; color: var(--text3); font-size: 14px; margin-top: 30px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.05); }
-    .footer a { color: var(--cyan); text-decoration: none; font-weight: 500; transition: color 0.2s; }
-    .footer a:hover { color: var(--blue); text-decoration: underline; }
-
-    /* Toast */
+    .footer { text-align: center; color: var(--text3); font-size: 14px; margin-top: auto; padding-top: 30px; padding-bottom: 20px; }
     #toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--gradient); border-radius: 99px; padding: 16px 32px; font-size: 15px; font-weight: 600; box-shadow: 0 10px 40px rgba(139,92,246,0.4); transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); z-index: 9999; color: white; white-space: nowrap; }
     #toast.show { transform: translateX(-50%) translateY(0); }
-
+    
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.3); border-radius: 99px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(56,189,248,0.6); }
   </style>
 </head>
 <body>
 <div class="wrapper">
-  <!-- Header -->
   <header class="header">
     <div class="logo">
       <div class="logo-icon">&lt;/&gt;</div>
       <div class="logo-text">
         <h1>Suka<span>Coding</span></h1>
-        <p>AI Bot Control Panel</p>
+        <p>SaaS Bot Fleet Manager</p>
       </div>
     </div>
-    <div class="header-right">
-      <div class="clock" id="clock">--:--:--</div>
-      <div id="conn-badge" class="badge badge-amber"><span class="dot pulse"></span> Menghubungkan...</div>
-    </div>
+    <div style="font-size: 14px; color: var(--text2);" id="active-bot-name">Pilih Bot di menu kiri</div>
   </header>
 
-  <!-- Stats -->
-  <div class="grid-3">
+  <div class="main-grid">
+    <!-- Sidebar -->
     <div class="card">
-      <div class="stat-label">Bot Status</div>
-      <div id="bot-status-text" class="stat-value">—</div>
-      <div class="stat-sub" id="bot-status-sub">Memuat...</div>
+      <div class="section-title">
+        Daftar Klien (Bot)
+        <span id="bot-count" style="font-size:12px; color:var(--cyan); background:rgba(56,189,248,0.1); padding:4px 8px; border-radius:99px;">0</span>
+      </div>
+      <div class="bot-list" id="bot-list">
+        <!-- List bot akan dimuat di sini -->
+      </div>
+      <button class="btn-create" onclick="createNewBot()">➕ Buat Bot Baru</button>
     </div>
-    <div class="card">
-      <div class="stat-label">Pesan Hari Ini</div>
-      <div class="stat-value" id="stat-messages">—</div>
-      <div class="stat-sub">Total percakapan user</div>
+
+    <!-- Main Content -->
+    <div id="dashboard-content" style="display:none;">
+      <div class="detail-grid">
+        <div class="card">
+          <div class="stat-label">Bot Status</div>
+          <div id="bot-status-text" class="stat-value">—</div>
+          <div class="stat-sub" id="bot-status-sub">Memuat...</div>
+        </div>
+        <div class="card">
+          <div class="stat-label">Daily Messages</div>
+          <div class="stat-value" id="stat-messages">—</div>
+          <div class="stat-sub">Pesan diproses hari ini</div>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <!-- QR Panel -->
+        <div class="card qr-panel">
+          <div class="qr-title">Koneksi WhatsApp</div>
+          <div class="qr-sub">Scan QR Code untuk klien ini</div>
+          <div id="qr-wrap">
+            <div class="qr-placeholder" id="qr-placeholder">
+              <span style="font-size: 40px;">⏳</span>
+              <p>Memuat QR...</p>
+            </div>
+            <img id="qr-img" src="" alt="QR Code" />
+            <div class="connected-msg" id="connected-msg" style="display:none;">
+              <div style="font-size:50px; filter:drop-shadow(0 0 20px rgba(16,185,129,0.4));">✅</div>
+              <h3 style="font-size:18px;">Terhubung!</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+          <div class="qr-title">Kontrol Bot</div>
+          <div class="qr-sub">Atur fungsionalitas untuk slot ini</div>
+          
+          <div class="controls-grid">
+            <button class="btn btn-green" onclick="controlBot('on')">✅ Hidupkan</button>
+            <button class="btn btn-red" onclick="controlBot('off')">🔴 Matikan</button>
+            <button class="btn btn-blue" onclick="controlBot('menu-on')">💬 Menu ON</button>
+            <button class="btn btn-amber" onclick="controlBot('menu-off')">💬 Menu OFF</button>
+            <button class="btn btn-danger" onclick="controlBot('logout')" style="margin-top: 10px;">🛑 LOGOUT KONEKSI & HAPUS SESI</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <div class="stat-label">System Uptime</div>
-      <div class="stat-value" id="uptime">—</div>
-      <div class="stat-sub" id="model-info">Model: —</div>
+    
+    <div id="empty-state" class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center; color: var(--text2);">
+      <div style="font-size: 60px; margin-bottom: 20px; opacity: 0.5;">🤖</div>
+      <h2 style="color: var(--text); margin-bottom: 10px;">Belum Ada Bot Dipilih</h2>
+      <p>Silakan pilih salah satu bot di daftar sebelah kiri, atau buat bot baru jika daftar kosong.</p>
     </div>
   </div>
 
-  <!-- Main Panels -->
-  <div class="grid-2">
-    <!-- QR Panel -->
-    <div class="card qr-panel">
-      <div class="qr-title">Koneksi WhatsApp</div>
-      <div class="qr-sub">Scan QR Code ini untuk menghubungkan bot</div>
-      <div id="qr-wrap">
-        <div class="qr-placeholder" id="qr-placeholder">
-          <span>⏳</span>
-          <p>Memuat QR Code...</p>
-        </div>
-        <img id="qr-img" src="" alt="QR Code" />
-        <div class="connected-msg" id="connected-msg" style="display:none;">
-          <div class="check-icon">✅</div>
-          <h3 style="font-size:20px;">Terhubung!</h3>
-          <p style="color:var(--text2); font-size:15px; margin-top: 4px;">Bot siap membalas pesan.</p>
-        </div>
-      </div>
-      <div class="qr-timer" id="qr-timer" style="display:none;">
-        Refresh otomatis dalam <span id="countdown">30</span>s
-      </div>
-    </div>
-
-    <!-- Controls -->
-    <div class="card">
-      <div class="qr-title">Kontrol Sistem</div>
-      <div class="qr-sub" style="margin-bottom: 28px;">Atur fungsionalitas bot secara real-time</div>
-      
-      <div class="controls-grid">
-        <button class="btn btn-green" onclick="controlBot('on')">✅ Hidupkan Bot</button>
-        <button class="btn btn-red" onclick="controlBot('off')">🔴 Matikan Bot</button>
-        <button class="btn btn-blue" onclick="controlBot('menu-on')">💬 Menu ON</button>
-        <button class="btn btn-amber" onclick="controlBot('menu-off')">💬 Menu OFF</button>
-        <button class="btn btn-danger" onclick="controlBot('reset')">🔄 Reset Semua History AI</button>
-      </div>
-
-      <div class="log-header">Log Aktivitas</div>
-      <div id="log-box">
-        <div class="log-entry"><span class="log-time">[System]</span> <span class="log-cyan">Dashboard dimuat...</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer -->
   <div class="footer">
-    &copy; 2026 SukaCoding. All rights reserved. &nbsp;&bull;&nbsp; Dashboard sync: 5s
+    &copy; 2026 SukaCoding SaaS Multi-Bot
   </div>
 </div>
 
 <div id="toast">✅ Sukses</div>
 
 <script>
-  let botConnected = false;
-  let countdownVal = 30;
-  let countdownTimer = null;
-
-  function updateClock() {
-    document.getElementById('clock').textContent = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  }
-  setInterval(updateClock, 1000); updateClock();
+  let activeBotId = null;
+  let refreshInterval = null;
 
   function showToast(msg) {
     const t = document.getElementById('toast');
@@ -265,110 +209,137 @@
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  function addLog(msg, type = 'cyan') {
-    const box = document.getElementById('log-box');
-    const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const div = document.createElement('div');
-    div.className = 'log-entry';
-    div.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${msg}</span>`;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
+  async function loadBotList() {
+    try {
+      const res = await fetch('/api/bots');
+      const data = await res.json();
+      const listEl = document.getElementById('bot-list');
+      document.getElementById('bot-count').textContent = data.bots.length;
+      
+      listEl.innerHTML = '';
+      data.bots.forEach(bot => {
+        const div = document.createElement('div');
+        div.className = `bot-item ${activeBotId === bot.id ? 'active' : ''}`;
+        div.onclick = () => selectBot(bot.id);
+        
+        const dotClass = bot.connected ? 'online' : 'offline';
+        div.innerHTML = `
+          <div class="bot-item-name">🤖 ${bot.id}</div>
+          <div class="status-dot ${dotClass}"></div>
+        `;
+        listEl.appendChild(div);
+      });
+      
+      if(activeBotId && !data.bots.find(b => b.id === activeBotId)) {
+          selectBot(null);
+      }
+    } catch(e) {}
   }
 
-  function formatUptime(ms) {
-    const s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
-    if (d > 0) return `${d}h ${h % 24}m`;
-    if (h > 0) return `${h}j ${m % 60}m`;
-    if (m > 0) return `${m}m ${s % 60}d`;
-    return `${s}d`;
+  function selectBot(id) {
+    activeBotId = id;
+    loadBotList();
+    
+    if (!id) {
+        document.getElementById('dashboard-content').style.display = 'none';
+        document.getElementById('empty-state').style.display = 'flex';
+        document.getElementById('active-bot-name').textContent = 'Pilih Bot di menu kiri';
+        if(refreshInterval) clearInterval(refreshInterval);
+        return;
+    }
+
+    document.getElementById('dashboard-content').style.display = 'block';
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('active-bot-name').textContent = `Mengelola: ${id}`;
+    
+    fetchStatus();
+    if(refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(fetchStatus, 3000);
+  }
+
+  async function createNewBot() {
+    const name = prompt("Masukkan nama ID Bot Baru (misal: klien-budi):");
+    if (!name) return;
+    showToast('⏳ Menyiapkan sesi baru...');
+    try {
+      const res = await fetch('/api/bots', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ botId: name })
+      });
+      const data = await res.json();
+      if(data.ok) {
+        showToast('✅ Bot dibuat!');
+        loadBotList();
+        selectBot(data.botId || name);
+      }
+    } catch(e) { showToast('❌ Gagal membuat bot'); }
   }
 
   async function fetchStatus() {
+    if(!activeBotId) return;
     try {
-      const res = await fetch('/api/status');
+      const res = await fetch(`/api/status/${activeBotId}`);
+      if(!res.ok) { selectBot(null); return; }
       const data = await res.json();
       
-      const badge = document.getElementById('conn-badge');
-      if (data.connected) {
-        badge.className = 'badge badge-green';
-        badge.innerHTML = '<span class="dot pulse"></span> Online';
-      } else {
-        badge.className = 'badge badge-amber';
-        badge.innerHTML = '<span class="dot pulse"></span> Offline';
-      }
-
       const statusText = document.getElementById('bot-status-text');
-      const statusSub = document.getElementById('bot-status-sub');
       if (data.botAktif) {
         statusText.innerHTML = '<span style="color:var(--cyan)">Aktif</span>';
-        statusSub.textContent = 'Merespon pesan masuk';
       } else {
         statusText.innerHTML = '<span style="color:var(--red)">Standby</span>';
-        statusSub.textContent = 'Bot sedang dimatikan';
       }
 
       document.getElementById('stat-messages').textContent = data.totalMessagesToday || '0';
-      document.getElementById('uptime').textContent = formatUptime(data.uptimeMs || 0);
-      document.getElementById('model-info').textContent = 'AI: ' + (data.model || 'Default');
-
       updateQRPanel(data);
-    } catch (e) {
-      document.getElementById('conn-badge').className = 'badge badge-red';
-      document.getElementById('conn-badge').innerHTML = '<span class="dot"></span> Error';
-    }
+    } catch (e) {}
   }
 
   async function updateQRPanel(data) {
-    const placeholder = document.getElementById('qr-placeholder'), qrImg = document.getElementById('qr-img'), connectedMsg = document.getElementById('connected-msg'), qrTimer = document.getElementById('qr-timer');
+    const placeholder = document.getElementById('qr-placeholder'), qrImg = document.getElementById('qr-img'), connectedMsg = document.getElementById('connected-msg');
     
     if (data.connected) {
-      placeholder.style.display = 'none'; qrImg.style.display = 'none'; connectedMsg.style.display = 'flex'; qrTimer.style.display = 'none';
-      stopCountdown(); return;
+      placeholder.style.display = 'none'; qrImg.style.display = 'none'; connectedMsg.style.display = 'flex';
+      return;
     }
     
     connectedMsg.style.display = 'none';
     try {
-      const res = await fetch('/api/qr');
+      const res = await fetch(`/api/qr/${activeBotId}`);
       const d = await res.json();
       if (d.qr) {
-        placeholder.style.display = 'none'; qrImg.src = d.qr; qrImg.style.display = 'block'; qrTimer.style.display = 'block';
-        startCountdown();
+        placeholder.style.display = 'none'; qrImg.src = d.qr; qrImg.style.display = 'block';
       } else {
-        qrImg.style.display = 'none'; placeholder.style.display = 'flex'; qrTimer.style.display = 'none';
-        stopCountdown();
+        qrImg.style.display = 'none'; placeholder.style.display = 'flex';
       }
     } catch(e) {
       qrImg.style.display = 'none'; placeholder.style.display = 'flex';
     }
   }
 
-  function startCountdown() {
-    if (countdownTimer) return;
-    countdownVal = 30; document.getElementById('countdown').textContent = countdownVal;
-    countdownTimer = setInterval(() => {
-      countdownVal--; document.getElementById('countdown').textContent = countdownVal;
-      if (countdownVal <= 0) { stopCountdown(); fetchStatus(); }
-    }, 1000);
-  }
-  
-  function stopCountdown() { if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } }
-
   async function controlBot(action) {
-    const labels = { 'on': 'Bot dihidupkan', 'off': 'Bot dimatikan', 'menu-on': 'Menu ON', 'menu-off': 'Menu OFF', 'reset': 'History chat direset' };
+    if(!activeBotId) return;
+    const isLogout = action === 'logout';
+    if(isLogout && !confirm("Yakin ingin LOGOUT koneksi klien ini? Bot akan dihapus dari memori.")) return;
+
     try {
-      const res = await fetch('/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
-      const data = await res.json();
-      if (data.ok) {
-        showToast('✅ ' + labels[action]); addLog('Action: ' + labels[action], 'green'); fetchStatus();
-      } else {
-        showToast('❌ Gagal diproses'); addLog('Failed: ' + action, 'red');
+      const res = await fetch(`/api/control/${activeBotId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+      if (res.ok) {
+        showToast(`✅ Perintah "${action}" berhasil`);
+        if(isLogout) {
+            selectBot(null);
+            setTimeout(loadBotList, 1000);
+        } else {
+            fetchStatus();
+        }
       }
     } catch(e) {
-      showToast('❌ Server error'); addLog('Error connection', 'red');
+      showToast('❌ Server error');
     }
   }
 
-  fetchStatus(); setInterval(fetchStatus, 5000); addLog('Terhubung ke server SukaCoding', 'cyan');
+  // Init
+  loadBotList();
+  setInterval(loadBotList, 5000);
 </script>
 </body>
 </html>

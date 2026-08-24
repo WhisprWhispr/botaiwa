@@ -4,57 +4,21 @@ const QRCode = require('qrcode');
 const Groq = require('groq-sdk');
 const express = require('express');
 const path = require('path');
-require('dotenv').config();
-
-// =====================================================
-// WHATSAPP AI BOT — SukaCoding
-// =====================================================
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 const os = require('os');
 const { executablePath } = require('puppeteer');
+require('dotenv').config();
 
-// Paksa pakai Chrome system di Linux (Railway) supaya tidak error libglib
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const ADMIN_ID = process.env.ADMIN_ID;
+
 let chromePath = executablePath();
 if (os.platform() === 'linux') {
     chromePath = '/usr/bin/google-chrome';
 }
 
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || chromePath,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
-    }
-});
+const bots = {}; // Menyimpan semua sesi bot
 
-// =====================
-// CONFIG — Sesuaikan di sini
-// =====================
-let botAktif = true;
-let handleHotLeadAktif = false; // aktifkan deteksi hot lead atau tidak
-let botMenu = true; // tampilkan menu di awal chat atau tidak
-const BOT_START_TIME = Math.floor(Date.now() / 1000);
-const BOT_START_MS   = Date.now();
-const MAX_HISTORY = 5; // jumlah riwayat chat yang diingat AI per user
-const ADMIN_ID = process.env.ADMIN_ID;  // nomor admin untuk notifikasi handover
-const batasiPesanPerHari = true; // aktifkan pembatasan pesan per hari
-const MAX_PESAN_PER_HARI = 20; // batas pesan ke AI per user per hari
-const MAX_CHARS_INPUT = 300; // batas karakter pesan user
-
-
-
-// =====================
-// TIPE MEDIA YANG TIDAK DIDUKUNG
-// Pesan dengan tipe ini akan ditolak kecuali ada caption
-// =====================
 const MEDIA_TYPES = ['image', 'video', 'audio', 'document', 'sticker'];
-
-// =====================
-// SYSTEM PROMPT AI
-// Ubah sesuai bisnis/kebutuhan kamu
-// =====================
 const SYSTEM_PROMPT = `Kamu adalah Hana, admin SukaCoding.
 
 Gaya:
@@ -80,545 +44,275 @@ Informasi SukaCoding:
 - Target: pemula hingga mahir yang ingin upgrade skill programming
 - Pengajar: Tim SukaCoding, developer berpengalaman`;
 
-// =====================
-// MENU TEXT
-// Teks ini ditampilkan di akhir balasan AI (hanya untuk 2 pesan pertama)
-// =====================
-const jumlahPesanPertama = 2; // ubah jumlah pesan pertama sesuai kebutuhan
-const MENU_TEXT = `
+const jumlahPesanPertama = 2;
+const MENU_TEXT = `\n\nUntuk Info Lainnya, Kamu bisa balas dengan angka (1-6) untuk pilihan berikut:\n1. 💸 Info harga & Promo\n2. 📃 Cara daftar\n3. 📚 Materi yang dipelajari\n4. 📝 Sudah daftar tapi belum masuk komunitas\n5. 🙋‍♂️ Siapa Pengajarnya\n6. 🙋 bantuan CS manusia`;
+const MAX_HISTORY = 5;
+const batasiPesanPerHari = true;
+const MAX_PESAN_PER_HARI = 20;
+const MAX_CHARS_INPUT = 300;
+const handleHotLeadAktif = false;
 
-Untuk Info Lainnya, Kamu bisa balas dengan angka (1-6) untuk pilihan berikut:
-1. 💸 Info harga & Promo
-2. 📃 Cara daftar
-3. 📚 Materi yang dipelajari
-4. 📝 Sudah daftar tapi belum masuk komunitas
-5. 🙋‍♂️ Siapa Pengajarnya
-6. 🙋 bantuan CS manusia`;
-
-// =====================
-// STATE — Jangan diubah
-// =====================
-const chatHistory = {};
-const userCooldown = {};
-const handoverUsers = {}; // user yang sudah request CS manusia
-const handoverWarned = {}; // user yang sudah dapat balasan "mohon tunggu" sekali
-const userMessageCount = {}; // { id: { count: 0, date: 'YYYY-MM-DD' } }
-
-// =====================
-// WEB DASHBOARD STATE
-// =====================
-let currentQRCode   = null; // QR string mentah dari whatsapp-web.js
-let currentQRImage  = null; // QR sebagai data URL (base64 PNG)
-let isConnected     = false; // apakah WA sudah terhubung
-let totalMessagesToday = 0;  // counter pesan hari ini
-
-// =====================
-// UTILS
-// =====================
-
-// Ambil riwayat chat user
-const getHistory = (id) => chatHistory[id] || [];
-
-// Tambah riwayat chat user (dibatasi MAX_HISTORY)
-const addHistory = (id, role, content) => {
-    chatHistory[id] = [...getHistory(id), { role, content }].slice(-MAX_HISTORY);
-};
-
-// Cek apakah user mengirim pesan terlalu cepat (anti spam 3 detik)
-const isSpam = (id) => {
-    const now = Date.now();
-    const last = userCooldown[id] || 0;
-    userCooldown[id] = now;
-    return now - last < 3000;
-};
-
-// Cek dan tambah hitungan pesan user hari ini
-const cekLimitHarian = (id) => {
-    const hari = new Date().toISOString().slice(0, 10); // format: YYYY-MM-DD
-    const data = userMessageCount[id];
-
-    // Jika belum ada data atau sudah hari baru → reset
-    if (!data || data.date !== hari) {
-        userMessageCount[id] = { count: 1, date: hari };
-        return false; // belum kena limit
-    }
-
-    // Tambah hitungan
-    userMessageCount[id].count++;
-
-    // Cek apakah sudah melewati batas
-    return userMessageCount[id].count > MAX_PESAN_PER_HARI;
-};
-
-// Normalisasi teks (lowercase)
 const normalize = (text) => text.toLowerCase();
 
-// =====================
-// HANDLER MEDIA
-// Deteksi pesan berupa gambar/media
-// Mengembalikan: teks yang sudah diberi konteks, atau null jika harus ditolak
-// =====================
-const handleMedia = (message) => {
+function handleMedia(message) {
     if (!MEDIA_TYPES.includes(message.type)) return { tolak: false, teks: null };
-
     const caption = message.body ? message.body.trim() : '';
+    if (message.type === 'image' && caption === '') return { tolak: true, teks: null, balasan: 'Maaf, saya tidak bisa melihat gambar. 😊\nKalau ada pertanyaan, ketik saja ya!' };
+    if (message.type === 'image' && caption !== '') return { tolak: false, teks: `[User mengirim gambar dengan pesan]: ${caption}` };
+    return { tolak: true, teks: null, balasan: 'Maaf, saya hanya bisa membalas pesan teks. 😊\nKalau ada pertanyaan, ketik saja ya!' };
+}
 
-    // Gambar tanpa caption → tolak
-    if (message.type === 'image' && caption === '') {
-        return {
-            tolak: true,
-            teks: null,
-            balasan: 'Maaf, saya tidak bisa melihat gambar. 😊\nKalau ada pertanyaan, ketik saja ya!'
-        };
-    }
-
-    // Gambar dengan caption → beri konteks ke AI
-    if (message.type === 'image' && caption !== '') {
-        return {
-            tolak: false,
-            teks: `[User mengirim gambar dengan pesan]: ${caption}`
-        };
-    }
-
-    // Tipe media lain (video, audio, document, sticker) → tolak semua
-    return {
-        tolak: true,
-        teks: null,
-        balasan: 'Maaf, saya hanya bisa membalas pesan teks. 😊\nKalau ada pertanyaan, ketik saja ya!'
-    };
-};
-
-// =====================
-// HANDLER MENU
-// Tambah/ubah menu sesuai kebutuhan
-// =====================
-const handleMenu = (text) => {
-    if (text === '1') {
-        return 'Harga promo Rp149.000 (lifetime) dari Rp350.000.\nMau daftar? 👉 https://sukacoding.com\n\nBalas "2" untuk lihat cara daftarnya';
-    }
-    if (text === '2') {
-        return 'Cara daftar gampang banget!\nLangsung ke https://sukacoding.com → klik Daftar → isi data → bayar → langsung akses materi! 😊';
-    }
-    if (text === '3') {
-        return 'Materinya dari nol dan step-by-step.\n' +
-               'Bahkan yang belum pernah ngoding pun bisa ikut!\n\n' +
-               'Cek materi lengkap di sini:\nhttps://www.instagram.com/p/DXKTzSCj6tQ/?img_index=1\n\n' +
-               'Balas "2" untuk cara daftar';
-    }
-    if (text === '4') {
-
-        try {
-            client.sendMessage(ADMIN_ID, '🔔 Ada user yang sudah daftar tapi belum masuk grup');
-        } catch (err) {
-            console.error('❌ Gagal kirim notifikasi ke admin:', err.message);
-        }
-        return 'Kalau sudah daftar tapi belum masuk grup, biasanya admin belum accept.\n' +
-               'Tunggu ya, paling lama 1x24 jam 😊';
-    }
-    if (text === '5') {
-        return 'Pengajar di SukaCoding adalah developer-developer berpengalaman di industri.\n' +
-               'Cek portofolio kami di website: https://sukacoding.com 🚀\n\n' +
-               'Balas "3" untuk lihat materi yang dipelajari';
-    }
+function handleMenu(text) {
+    if (text === '1') return 'Harga promo Rp149.000 (lifetime) dari Rp350.000.\nMau daftar? 👉 https://sukacoding.com\n\nBalas "2" untuk lihat cara daftarnya';
+    if (text === '2') return 'Cara daftar gampang banget!\nLangsung ke https://sukacoding.com → klik Daftar → isi data → bayar → langsung akses materi! 😊';
+    if (text === '3') return 'Materinya dari nol dan step-by-step.\nBahkan yang belum pernah ngoding pun bisa ikut!\n\nCek materi lengkap di sini:\nhttps://www.instagram.com/p/DXKTzSCj6tQ/?img_index=1\n\nBalas "2" untuk cara daftar';
+    if (text === '4') return 'Kalau sudah daftar tapi belum masuk grup, biasanya admin belum accept.\nTunggu ya, paling lama 1x24 jam 😊';
+    if (text === '5') return 'Pengajar di SukaCoding adalah developer-developer berpengalaman di industri.\nCek portofolio kami di website: https://sukacoding.com 🚀\n\nBalas "3" untuk lihat materi yang dipelajari';
     return null;
-};
+}
 
-// =====================
-// HANDLER HOT LEAD
-// Deteksi calon pembeli yang sudah tertarik
-// =====================
-const handleHotLead = (text) => {
+function handleHotLead(text) {
     const hotKeywords = ['mau daftar', 'mau beli', 'tertarik', 'gimana cara daftar', 'mau ikut'];
-    if (hotKeywords.some(keyword => text.includes(keyword))) {
-        return `Mantap kak! 🚀\nLangsung daftar di sini ya:\nhttps://sukacoding.com\n\nPromo masih aktif, jangan sampai kehabisan! 👍`;
-    }
+    if (hotKeywords.some(keyword => text.includes(keyword))) return `Mantap kak! 🚀\nLangsung daftar di sini ya:\nhttps://sukacoding.com\n\nPromo masih aktif, jangan sampai kehabisan! 👍`;
     return null;
-};
+}
 
-// =====================
-// HANDLER HANDOVER
-// Proses ketika user minta CS manusia (menu angka 6)
-// =====================
-const handleHandover = async (nomor, nama) => {
-    // Tandai user ini sebagai handover
-    handoverUsers[nomor] = true;
-    handoverWarned[nomor] = false;
+async function startBot(botId) {
+    if (bots[botId]) return bots[botId];
 
-    // Kirim notifikasi ke nomor admin
-    const waktu = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Makassar' });
-    const notifAdmin =
-        `🔔 *Permintaan CS Manusia*\n\n` +
-        `👤 Nama: ${nama}\n` +
-        `📱 Nomor: wa.me/${nomor}\n` +
-        `🕐 Waktu: ${waktu}\n\n` +
-        `Silakan balas langsung ke user tersebut.`;
-
-    try {
-        await client.sendMessage(ADMIN_ID, notifAdmin);
-        console.log(`🔔 Notifikasi handover dikirim ke admin untuk user: ${nama}`);
-    } catch (err) {
-        console.error('❌ Gagal kirim notifikasi ke admin:', err.message);
-    }
-
-    // Balasan ke user
-    return `Baik kak, permintaan kamu sudah kami sampaikan ke CS kami. 😊\nMohon tunggu, admin akan segera menghubungi kamu ya!`;
-};
-
-// =====================
-// HANDLER AI
-// =====================
-const handleAI = async (id, text, message) => {
-    // Mulai typing indicator
-    let chat = null;
-    try {
-        chat = await message.getChat(); // ← cukup sekali
-        await chat.sendStateTyping();
-    } catch (e) {}
-
-
-    addHistory(id, 'user', text);
-
-    const res = await groq.chat.completions.create({
-        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-        max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
-        messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...getHistory(id)
-        ]
+    console.log(`[SYSTEM] Starting bot session: ${botId}`);
+    
+    const client = new Client({
+        authStrategy: new LocalAuth({ clientId: botId }),
+        puppeteer: {
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || chromePath,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        }
     });
 
-    const reply = res.choices[0].message.content;
-    addHistory(id, 'assistant', reply);
+    const state = {
+        id: botId,
+        client: client,
+        botAktif: true,
+        botMenu: true,
+        isConnected: false,
+        currentQRCode: null,
+        currentQRImage: null,
+        totalMessagesToday: 0,
+        startTime: Date.now(),
+        chatHistory: {},
+        userCooldown: {},
+        handoverUsers: {},
+        handoverWarned: {},
+        userMessageCount: {}
+    };
+    bots[botId] = state;
 
-    console.log(`📊 Token: input=${res.usage.prompt_tokens} output=${res.usage.completion_tokens} total=${res.usage.total_tokens}`);
-
-    // Stop typing indicator
-    try {
-        if (chat) await chat.clearState(); // ← tidak perlu getChat() lagi
-    } catch (e) {}
-
-    return reply;
-};
-
-// =====================
-// MAIN EVENT — Pesan dari orang lain
-// =====================
-client.on('message', async (message) => {
-    try {
-        // Skip pesan dari grup
-        if (message.from.endsWith('@g.us')) return;
-
-        // Skip saluran/channel
-        if (message.from.endsWith('@newsletter')) return;
-
-        // Skip broadcast & status WhatsApp
-        if (message.from === 'status@broadcast') return;
-        if (message.from.endsWith('@broadcast')) return;
-
-        // Skip pesan sistem
-        if (message.type === 'e2e_notification') return;
-        if (message.type === 'notification_template') return;
-
-        const id = message.from;
-
-        // Skip pesan lama sebelum bot nyala
-        if (message.timestamp < BOT_START_TIME) return;
-
-        // Skip kalau bot nonaktif
-        if (!botAktif) return;
-
-        const contact = await message.getContact();
-        const nama = contact.name || contact.pushname || 'Unknown';
-        console.log(`💬 Pesan dari: ${nama} (${message.from}) (${message.type}) | ${message.body}`);
-
-        // Anti spam
-        if (isSpam(id)) return;
-
-        // Tambah counter pesan hari ini
-        totalMessagesToday++;
-
-        // =====================
-        // CEK HANDOVER
-        // Jika user sudah request CS manusia, bot tidak balas lagi
-        // =====================
-        if (handoverUsers[contact.id.user]) {
-            // Hanya balas sekali sebagai pengingat
-            if (!handoverWarned[contact.id.user]) {
-                handoverWarned[contact.id.user] = true;
-                return message.reply('Mohon tunggu, admin segera menghubungi kamu ya! 😊');
-            }
-            // Setelah peringatan pertama, diam saja
-            return;
-        }
-
-        // =====================
-        // DETEKSI MEDIA
-        // =====================
-        const media = handleMedia(message);
-        if (media.tolak) {
-            return message.reply(media.balasan);
-        }
-
-        // Gunakan teks dari caption (jika gambar) atau teks biasa
-        const rawText = media.teks || message.body;
-
-        // Cek panjang pesan untuk mencegah overload AI
-        if (rawText.length > MAX_CHARS_INPUT) {
-            return message.reply(
-                'Wah, pesannya terlalu panjang nih kak '+nama+' 😊\n' +
-                'Coba sampaikan pertanyaannya lebih singkat ya, biar saya bisa bantu dengan lebih baik!'
-            );
-        }
-
-        const text = normalize(rawText);
-
-        // Cek menu jika botMenu aktif
-        // Catatan: menu hanya dicek untuk pesan teks biasa, bukan gambar dengan caption
-        if (botMenu && !media.teks) {
-            const menuReply = handleMenu(text);
-            if (menuReply) return message.reply(menuReply);
-
-            // Menu 6 — request CS manusia
-            if (text === '6') {
-                const replyHandover = await handleHandover(contact.id.user, nama);
-                return message.reply(replyHandover);
-            }
-        }
-
-        // Cek hot lead
-        if (handleHotLeadAktif) {
-            const hot = handleHotLead(text);
-            if (hot) return message.reply(hot);
-        }
-
-        //cek pembatasan pesan per hari
-        if (batasiPesanPerHari && cekLimitHarian(contact.id.user)) {
-            return message.reply(
-                `Maaf Kak ${nama}, batas percakapan harian kakak sudah tercapai. 😊\n` +
-                'Silakan chat lagi besok ya!\n\n' +
-                'Sementara itu, kamu bisa lihat info lengkap di:\n' +
-                'https://sukacoding.com' +
-                MENU_TEXT
-            );
-        }
-
-        // Jawab pakai AI
-        // Kirim rawText (bukan text) agar konteks [User mengirim gambar] tidak dilowercase
-        let reply = await handleAI(contact.id.user, rawText, message);
-
-        // Tambahkan menu di 2 pesan pertama
-        if (getHistory(contact.id.user).length <= jumlahPesanPertama && botMenu) {
-            reply += MENU_TEXT;
-        }
-
-        await message.reply(reply);
-        console.log('─'.repeat(40));
-
-    } catch (err) {
-        console.error('❌ Error:', err.message);
-        // botAktif = true; // pastikan bot aktif jika error
-        try {
-            await message.reply(
-                'Ops, saya sedang mengalami kesulitan untuk menjawab. Silakan coba lagi nanti.\n' +
-                'Silakan kunjungi https://sukacoding.com untuk informasi lebih lanjut.' +
-                (botAktif ? MENU_TEXT : '')
-            );
-        } catch (e) {}
-    }
-});
-
-// =====================
-// MAIN EVENT — Perintah dari nomor sendiri
-// Kirim perintah ke nomor sendiri (chat dengan diri sendiri)
-// =====================
-client.on('message_create', async (message) => {
-    if (!message.fromMe) return;
-
-    const text = normalize(message.body);
-
-    if (text === '!on') {
-        botAktif = true;
-        return message.reply('✅ Bot diaktifkan!');
-    }
-    if (text === '!off') {
-        botAktif = false;
-        return message.reply('🔴 Bot dimatikan!');
-    }
-    if (text === '!menu on') {
-        botMenu = true;
-        return message.reply('✅ Menu diaktifkan!');
-    }
-    if (text === '!menu off') {
-        botMenu = false;
-        return message.reply('🔴 Menu dimatikan!');
-    }
-    if (text === '!status') {
-        return message.reply(`Status bot: ${botAktif ? '✅ Aktif' : '🔴 Nonaktif'}\nMenu: ${botMenu ? '✅ Aktif' : '🔴 Nonaktif'}`);
-    }
-    if (text === '!reset') {
-        Object.keys(chatHistory).forEach(k => chatHistory[k] = []);
-        return message.reply('✅ Semua history chat direset!');
-    }
-    if (text.startsWith('!selesai ')) {
-        // Format: !selesai 628XXXXXXXXXX
-        // Digunakan setelah admin selesai handle user secara manual
-        const nomorTarget = text.replace('!selesai ', '').trim();
-        if (handoverUsers[nomorTarget]) {
-            delete handoverUsers[nomorTarget];
-            delete handoverWarned[nomorTarget];
-            return message.reply(`✅ User ${nomorTarget} sudah dilepas dari mode handover. Bot aktif kembali untuk user tersebut.`);
-        }
-        return message.reply(`⚠️ User ${nomorTarget} tidak sedang dalam mode handover.`);
-    }
-    if (text === '!limit') {
+    // UTILS BOUND TO STATE
+    const getHistory = (id) => state.chatHistory[id] || [];
+    const addHistory = (id, role, content) => { state.chatHistory[id] = [...getHistory(id), { role, content }].slice(-MAX_HISTORY); };
+    const isSpam = (id) => { const now = Date.now(); const last = state.userCooldown[id] || 0; state.userCooldown[id] = now; return now - last < 3000; };
+    const cekLimitHarian = (id) => {
         const hari = new Date().toISOString().slice(0, 10);
-        const aktif = Object.entries(userMessageCount)
-            .filter(([_, v]) => v.date === hari)
-            .sort((a, b) => b[1].count - a[1].count)
-            .map(([id, v]) => `${id.replace('@c.us','').replace('@lid','')} → ${v.count}/${MAX_PESAN_PER_HARI}`)
-            .join('\n');
+        const data = state.userMessageCount[id];
+        if (!data || data.date !== hari) { state.userMessageCount[id] = { count: 1, date: hari }; return false; }
+        state.userMessageCount[id].count++;
+        return state.userMessageCount[id].count > MAX_PESAN_PER_HARI;
+    };
 
-        return message.reply(aktif
-            ? `📊 *Pemakaian AI hari ini:*\n\n${aktif}`
-            : '📊 Belum ada pemakaian AI hari ini.'
-        );
-    }
-    if (text === '!help') {
-        return message.reply(
-            '*Daftar Perintah Bot:*\n\n' +
-            '!on → Aktifkan bot\n' +
-            '!off → Matikan bot\n' +
-            '!menu on → Aktifkan menu\n' +
-            '!menu off → Matikan menu\n' +
-            '!status → Cek status bot\n' +
-            '!reset → Reset semua history chat\n' +
-            '!selesai 628XXX → Lepas user dari mode handover\n' +
-            '!limit → Cek pemakaian AI hari ini\n' +
-            '!help → Tampilkan bantuan ini'
-        );
-    }
-});
+    client.on('qr', async (qr) => {
+        state.currentQRCode = qr;
+        state.isConnected = false;
+        try { state.currentQRImage = await QRCode.toDataURL(qr, { width: 300, margin: 2 }); } catch(e){}
+    });
 
-// =====================
-// QR CODE & READY
-// =====================
-client.on('qr', async (qr) => {
-    currentQRCode  = qr;
-    isConnected    = false;
-    console.log('📱 Scan QR Code berikut dengan WhatsApp kamu:');
-    qrcode.generate(qr, { small: true });
+    client.on('ready', () => {
+        state.isConnected = true;
+        state.currentQRCode = null;
+        state.currentQRImage = null;
+        console.log(`✅ Bot [${botId}] WhatsApp siap!`);
+    });
 
-    // Simpan QR sebagai gambar base64 untuk web dashboard
-    try {
-        currentQRImage = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
-    } catch (e) {
-        console.error('❌ Gagal generate QR image:', e.message);
-    }
-});
+    client.on('disconnected', () => {
+        state.isConnected = false;
+        console.log(`⚠️ Bot [${botId}] terputus`);
+    });
 
-client.on('ready', () => {
-    isConnected   = true;
-    currentQRCode  = null;
-    currentQRImage = null;
-    console.log('✅ Bot WhatsApp siap!');
-    console.log(`⚙️  Model AI: ${process.env.GROQ_MODEL || 'llama-3.1-8b-instant'}`);
-    console.log(`⚙️  Max tokens: ${process.env.MAX_TOKENS || 250}`);
-    console.log(`🌐 Dashboard: http://localhost:${process.env.PORT || 3000}`);
-});
+    client.on('message', async (message) => {
+        try {
+            if (message.from.endsWith('@g.us')) return;
+            if (message.from.endsWith('@newsletter')) return;
+            if (message.from === 'status@broadcast' || message.from.endsWith('@broadcast')) return;
+            if (message.type === 'e2e_notification' || message.type === 'notification_template') return;
+            if (!state.botAktif) return;
 
-client.on('disconnected', () => {
-    isConnected = false;
-    console.log('⚠️ Bot terputus dari WhatsApp');
-});
+            const id = message.from;
+            const contact = await message.getContact();
+            const nama = contact.name || contact.pushname || 'Unknown';
+            
+            if (isSpam(id)) return;
+            state.totalMessagesToday++;
 
-// =====================
-// WEB DASHBOARD — Express Server
-// =====================
-const app  = express();
-const PORT = 3000; // Hardcode port 3000 agar sinkron dengan setingan Railway kamu
+            if (state.handoverUsers[contact.id.user]) {
+                if (!state.handoverWarned[contact.id.user]) {
+                    state.handoverWarned[contact.id.user] = true;
+                    return message.reply('Mohon tunggu, admin segera menghubungi kamu ya! 😊');
+                }
+                return;
+            }
 
+            const media = handleMedia(message);
+            if (media.tolak) return message.reply(media.balasan);
+            
+            const rawText = media.teks || message.body;
+            if (rawText.length > MAX_CHARS_INPUT) return message.reply('Wah, pesannya terlalu panjang nih kak 😊\nCoba sampaikan lebih singkat ya!');
+
+            const text = normalize(rawText);
+
+            if (state.botMenu && !media.teks) {
+                const menuReply = handleMenu(text);
+                if (menuReply) {
+                    if (text === '4') {
+                        try { client.sendMessage(ADMIN_ID, `🔔 [${botId}] Ada user daftar belum masuk grup`); } catch(e){}
+                    }
+                    return message.reply(menuReply);
+                }
+                if (text === '6') {
+                    state.handoverUsers[contact.id.user] = true;
+                    state.handoverWarned[contact.id.user] = false;
+                    try { await client.sendMessage(ADMIN_ID, `🔔 *Permintaan CS [${botId}]*\n👤 ${nama}\n📱 wa.me/${contact.id.user}`); } catch(e){}
+                    return message.reply('Baik kak, permintaan kamu sudah disampaikan ke CS. 😊 Mohon tunggu ya!');
+                }
+            }
+
+            if (handleHotLeadAktif) {
+                const hot = handleHotLead(text);
+                if (hot) return message.reply(hot);
+            }
+
+            if (batasiPesanPerHari && cekLimitHarian(contact.id.user)) {
+                return message.reply(`Maaf Kak ${nama}, batas harian tercapai. 😊 Silakan chat besok!\nhttps://sukacoding.com` + MENU_TEXT);
+            }
+
+            // AI
+            let chat = null;
+            try { chat = await message.getChat(); await chat.sendStateTyping(); } catch (e) {}
+
+            addHistory(contact.id.user, 'user', rawText);
+            const res = await groq.chat.completions.create({
+                model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
+                messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
+            });
+            const reply = res.choices[0].message.content;
+            addHistory(contact.id.user, 'assistant', reply);
+
+            try { if (chat) await chat.clearState(); } catch (e) {}
+            
+            let finalReply = reply;
+            if (getHistory(contact.id.user).length <= jumlahPesanPertama && state.botMenu) finalReply += MENU_TEXT;
+            
+            await message.reply(finalReply);
+
+        } catch (err) {
+            console.error(`❌ Error [${botId}]:`, err.message);
+            try { await message.reply('Ops, saya sedang mengalami kesulitan. Silakan coba lagi nanti.\nhttps://sukacoding.com' + (state.botAktif ? MENU_TEXT : '')); } catch(e){}
+        }
+    });
+
+    client.on('message_create', async (message) => {
+        if (!message.fromMe) return;
+        const text = normalize(message.body);
+        if (text === '!on') { state.botAktif = true; return message.reply('✅ Bot aktif!'); }
+        if (text === '!off') { state.botAktif = false; return message.reply('🔴 Bot mati!'); }
+        if (text === '!menu on') { state.botMenu = true; return message.reply('✅ Menu aktif!'); }
+        if (text === '!menu off') { state.botMenu = false; return message.reply('🔴 Menu mati!'); }
+        if (text === '!status') return message.reply(`Bot: ${state.botAktif}\nMenu: ${state.botMenu}`);
+        if (text === '!reset') { state.chatHistory = {}; return message.reply('✅ History reset!'); }
+        if (text.startsWith('!selesai ')) {
+            const num = text.replace('!selesai ', '').trim();
+            if (state.handoverUsers[num]) { delete state.handoverUsers[num]; delete state.handoverWarned[num]; return message.reply(`✅ User dilepas dari handover.`); }
+        }
+    });
+
+    client.initialize().catch(err => console.error(`Failed to init bot ${botId}:`, err));
+    return state;
+}
+
+const app = express();
+const PORT = 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// GET /api/status — Status bot lengkap
-app.get('/api/status', (req, res) => {
-    const hari = new Date().toISOString().slice(0, 10);
-    const totalToday = Object.values(userMessageCount)
-        .filter(v => v.date === hari)
-        .reduce((sum, v) => sum + v.count, 0);
+app.get('/api/bots', (req, res) => {
+    const list = Object.keys(bots).map(id => ({
+        id,
+        connected: bots[id].isConnected,
+        botAktif: bots[id].botAktif
+    }));
+    res.json({ ok: true, bots: list });
+});
 
+app.post('/api/bots', async (req, res) => {
+    const { botId } = req.body;
+    if (!botId || botId.trim() === '') return res.status(400).json({ error: 'Bot ID required' });
+    const safeId = botId.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (bots[safeId]) return res.json({ ok: true, message: 'Already exists' });
+    await startBot(safeId);
+    res.json({ ok: true, botId: safeId });
+});
+
+app.get('/api/status/:id', (req, res) => {
+    const bot = bots[req.params.id];
+    if (!bot) return res.status(404).json({ error: 'Not found' });
+    const hari = new Date().toISOString().slice(0, 10);
     res.json({
         ok: true,
-        connected:         isConnected,
-        botAktif:          botAktif,
-        botMenu:           botMenu,
-        model:             process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-        uptimeMs:          Date.now() - BOT_START_MS,
-        totalMessagesToday: totalMessagesToday,
-        totalUsersToday:   Object.keys(userMessageCount).filter(k => userMessageCount[k].date === hari).length,
-        handoverCount:     Object.keys(handoverUsers).length,
+        connected: bot.isConnected,
+        botAktif: bot.botAktif,
+        botMenu: bot.botMenu,
+        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+        uptimeMs: Date.now() - bot.startTime,
+        totalMessagesToday: bot.totalMessagesToday,
+        totalUsersToday: Object.keys(bot.userMessageCount).filter(k => bot.userMessageCount[k].date === hari).length,
+        handoverCount: Object.keys(bot.handoverUsers).length
     });
 });
 
-// GET /api/qr — QR Code sebagai base64 data URL
-app.get('/api/qr', (req, res) => {
-    if (isConnected) {
-        return res.json({ ok: true, connected: true, qr: null });
-    }
-    res.json({ ok: true, connected: false, qr: currentQRImage || null });
+app.get('/api/qr/:id', (req, res) => {
+    const bot = bots[req.params.id];
+    if (!bot) return res.status(404).json({ error: 'Not found' });
+    if (bot.isConnected) return res.json({ ok: true, connected: true, qr: null });
+    res.json({ ok: true, connected: false, qr: bot.currentQRImage || null });
 });
 
-// POST /api/control — Kontrol bot
-app.post('/api/control', (req, res) => {
+app.post('/api/control/:id', async (req, res) => {
+    const bot = bots[req.params.id];
+    if (!bot) return res.status(404).json({ error: 'Not found' });
     const { action } = req.body;
-
-    switch (action) {
-        case 'on':
-            botAktif = true;
-            console.log('🌐 [Dashboard] Bot diaktifkan');
-            return res.json({ ok: true, message: 'Bot diaktifkan' });
-
-        case 'off':
-            botAktif = false;
-            console.log('🌐 [Dashboard] Bot dimatikan');
-            return res.json({ ok: true, message: 'Bot dimatikan' });
-
-        case 'menu-on':
-            botMenu = true;
-            console.log('🌐 [Dashboard] Menu diaktifkan');
-            return res.json({ ok: true, message: 'Menu diaktifkan' });
-
-        case 'menu-off':
-            botMenu = false;
-            console.log('🌐 [Dashboard] Menu dimatikan');
-            return res.json({ ok: true, message: 'Menu dimatikan' });
-
-        case 'reset':
-            Object.keys(chatHistory).forEach(k => chatHistory[k] = []);
-            console.log('🌐 [Dashboard] History chat direset');
-            return res.json({ ok: true, message: 'History direset' });
-
-        default:
-            return res.status(400).json({ ok: false, error: 'Aksi tidak dikenali' });
+    try {
+        if (action === 'on') bot.botAktif = true;
+        else if (action === 'off') bot.botAktif = false;
+        else if (action === 'menu-on') bot.botMenu = true;
+        else if (action === 'menu-off') bot.botMenu = false;
+        else if (action === 'reset') bot.chatHistory = {};
+        else if (action === 'logout') {
+            try { await bot.client.logout(); } catch(e){}
+            try { await bot.client.destroy(); } catch(e){}
+            delete bots[req.params.id];
+            return res.json({ ok: true, message: 'Logged out and deleted' });
+        }
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
-// Jalankan web server
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌐 Dashboard aktif di: http://0.0.0.0:${PORT}`);
+    console.log(`🌐 Multi-tenant Dashboard aktif di: http://0.0.0.0:${PORT}`);
+    // Otomatis nyalakan slot bot 1 saat server jalan
+    startBot('slot-1');
 });
 
-// =====================
-// ERROR HANDLER GLOBAL
-// Bot tidak akan crash meskipun ada error
-// =====================
-process.on('unhandledRejection', (reason) => {
-    console.error('⚠️ Unhandled error (bot tetap jalan):', reason);
-});
-
-process.on('uncaughtException', (error) => {
-    console.error('⚠️ Uncaught error (bot tetap jalan):', error.message);
-});
-
-// Jalankan bot
-client.initialize();
+process.on('unhandledRejection', (r) => console.error('⚠️ Unhandled rejection:', r));
+process.on('uncaughtException', (e) => console.error('⚠️ Uncaught exception:', e.message));
