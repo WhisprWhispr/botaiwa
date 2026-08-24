@@ -1,6 +1,9 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 const Groq = require('groq-sdk');
+const express = require('express');
+const path = require('path');
 require('dotenv').config();
 
 // =====================================================
@@ -14,8 +17,8 @@ const { executablePath } = require('puppeteer');
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: executablePath(),
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || executablePath(),
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     }
 });
 
@@ -26,6 +29,7 @@ let botAktif = true;
 let handleHotLeadAktif = false; // aktifkan deteksi hot lead atau tidak
 let botMenu = true; // tampilkan menu di awal chat atau tidak
 const BOT_START_TIME = Math.floor(Date.now() / 1000);
+const BOT_START_MS   = Date.now();
 const MAX_HISTORY = 5; // jumlah riwayat chat yang diingat AI per user
 const ADMIN_ID = process.env.ADMIN_ID;  // nomor admin untuk notifikasi handover
 const batasiPesanPerHari = true; // aktifkan pembatasan pesan per hari
@@ -93,6 +97,14 @@ const userCooldown = {};
 const handoverUsers = {}; // user yang sudah request CS manusia
 const handoverWarned = {}; // user yang sudah dapat balasan "mohon tunggu" sekali
 const userMessageCount = {}; // { id: { count: 0, date: 'YYYY-MM-DD' } }
+
+// =====================
+// WEB DASHBOARD STATE
+// =====================
+let currentQRCode   = null; // QR string mentah dari whatsapp-web.js
+let currentQRImage  = null; // QR sebagai data URL (base64 PNG)
+let isConnected     = false; // apakah WA sudah terhubung
+let totalMessagesToday = 0;  // counter pesan hari ini
 
 // =====================
 // UTILS
@@ -316,6 +328,9 @@ client.on('message', async (message) => {
         // Anti spam
         if (isSpam(id)) return;
 
+        // Tambah counter pesan hari ini
+        totalMessagesToday++;
+
         // =====================
         // CEK HANDOVER
         // Jika user sudah request CS manusia, bot tidak balas lagi
@@ -481,15 +496,110 @@ client.on('message_create', async (message) => {
 // =====================
 // QR CODE & READY
 // =====================
-client.on('qr', qr => {
+client.on('qr', async (qr) => {
+    currentQRCode  = qr;
+    isConnected    = false;
     console.log('📱 Scan QR Code berikut dengan WhatsApp kamu:');
     qrcode.generate(qr, { small: true });
+
+    // Simpan QR sebagai gambar base64 untuk web dashboard
+    try {
+        currentQRImage = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
+    } catch (e) {
+        console.error('❌ Gagal generate QR image:', e.message);
+    }
 });
 
 client.on('ready', () => {
+    isConnected   = true;
+    currentQRCode  = null;
+    currentQRImage = null;
     console.log('✅ Bot WhatsApp siap!');
     console.log(`⚙️  Model AI: ${process.env.GROQ_MODEL || 'llama-3.1-8b-instant'}`);
     console.log(`⚙️  Max tokens: ${process.env.MAX_TOKENS || 250}`);
+    console.log(`🌐 Dashboard: http://localhost:${process.env.PORT || 3000}`);
+});
+
+client.on('disconnected', () => {
+    isConnected = false;
+    console.log('⚠️ Bot terputus dari WhatsApp');
+});
+
+// =====================
+// WEB DASHBOARD — Express Server
+// =====================
+const app  = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// GET /api/status — Status bot lengkap
+app.get('/api/status', (req, res) => {
+    const hari = new Date().toISOString().slice(0, 10);
+    const totalToday = Object.values(userMessageCount)
+        .filter(v => v.date === hari)
+        .reduce((sum, v) => sum + v.count, 0);
+
+    res.json({
+        ok: true,
+        connected:         isConnected,
+        botAktif:          botAktif,
+        botMenu:           botMenu,
+        model:             process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+        uptimeMs:          Date.now() - BOT_START_MS,
+        totalMessagesToday: totalMessagesToday,
+        totalUsersToday:   Object.keys(userMessageCount).filter(k => userMessageCount[k].date === hari).length,
+        handoverCount:     Object.keys(handoverUsers).length,
+    });
+});
+
+// GET /api/qr — QR Code sebagai base64 data URL
+app.get('/api/qr', (req, res) => {
+    if (isConnected) {
+        return res.json({ ok: true, connected: true, qr: null });
+    }
+    res.json({ ok: true, connected: false, qr: currentQRImage || null });
+});
+
+// POST /api/control — Kontrol bot
+app.post('/api/control', (req, res) => {
+    const { action } = req.body;
+
+    switch (action) {
+        case 'on':
+            botAktif = true;
+            console.log('🌐 [Dashboard] Bot diaktifkan');
+            return res.json({ ok: true, message: 'Bot diaktifkan' });
+
+        case 'off':
+            botAktif = false;
+            console.log('🌐 [Dashboard] Bot dimatikan');
+            return res.json({ ok: true, message: 'Bot dimatikan' });
+
+        case 'menu-on':
+            botMenu = true;
+            console.log('🌐 [Dashboard] Menu diaktifkan');
+            return res.json({ ok: true, message: 'Menu diaktifkan' });
+
+        case 'menu-off':
+            botMenu = false;
+            console.log('🌐 [Dashboard] Menu dimatikan');
+            return res.json({ ok: true, message: 'Menu dimatikan' });
+
+        case 'reset':
+            Object.keys(chatHistory).forEach(k => chatHistory[k] = []);
+            console.log('🌐 [Dashboard] History chat direset');
+            return res.json({ ok: true, message: 'History direset' });
+
+        default:
+            return res.status(400).json({ ok: false, error: 'Aksi tidak dikenali' });
+    }
+});
+
+// Jalankan web server
+app.listen(PORT, () => {
+    console.log(`🌐 Dashboard aktif di: http://localhost:${PORT}`);
 });
 
 // =====================
