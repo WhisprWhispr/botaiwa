@@ -536,7 +536,7 @@ client.on('disconnected', () => {
 // WEB DASHBOARD — Express Server
 // =====================
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000; // Hardcode port 3000 agar sinkron dengan setingan Railway kamu
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
