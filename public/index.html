@@ -488,7 +488,18 @@
     </div>
   </div>
 
-  <script>
+    <script>
+    // --- REALTIME CLOCK ---
+    function updateClock() {
+      const now = new Date();
+      const dateOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+      const dateStr = now.toLocaleDateString('id-ID', dateOptions);
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('current-date').textContent = `${dateStr} • ${timeStr}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock(); // initial call
+
     // --- CUSTOM MODAL & TOAST UI ---
     function showToast(msg, type = 'success') {
       const container = document.getElementById('toast-container');
@@ -553,12 +564,11 @@
       document.getElementById('custom-modal-overlay').classList.remove('active');
     }
 
-    const dateOptions = { day: 'numeric', month: 'short', year: 'numeric' };
-    document.getElementById('current-date').textContent = new Date().toLocaleDateString('id-ID', dateOptions);
-
-    // --- BOT MANAGEMENT LOGIC ---
+    // Tab Logic moved down
     let activeBotId = null;
     let refreshInterval = null;
+
+    function createNewBot() {
 
     async function loadBotList() {
       try {
