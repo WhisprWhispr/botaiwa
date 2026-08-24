@@ -209,9 +209,61 @@
     .feed-text span { color: var(--text-main); }
     .feed-time { color: var(--text-sub); }
 
-    /* Toast */
-    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--grad-primary); border-radius: 8px; padding: 12px 24px; font-size: 14px; font-weight: 600; transition: 0.3s; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    #toast.show { transform: translateX(-50%) translateY(0); }
+    /* Toast Notifications */
+    #toast-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
+    .toast {
+      background: var(--panel); border-left: 4px solid var(--blue);
+      border-radius: 8px; padding: 16px 24px; font-size: 13px; font-weight: 500;
+      color: var(--text-main); display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .toast.show { transform: translateX(0); }
+    .toast.success { border-left-color: var(--green); }
+    .toast.error { border-left-color: var(--red); }
+    .toast.warning { border-left-color: var(--cyan); }
+    .toast-icon { font-size: 18px; }
+
+    /* Custom Modals (Popups) */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(3, 7, 18, 0.8); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    
+    .custom-modal {
+      background: var(--panel); border: 1px solid var(--panel-border);
+      border-radius: 16px; padding: 30px; width: 400px; max-width: 90%;
+      transform: translateY(30px) scale(0.95); transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .modal-overlay.active .custom-modal { transform: translateY(0) scale(1); }
+    
+    .modal-header { display: flex; align-items: center; gap: 12px; }
+    .modal-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .modal-icon.danger { background: rgba(239,68,68,0.1); color: var(--red); }
+    .modal-icon.info { background: rgba(59,130,246,0.1); color: var(--blue); }
+    
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-desc { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+    
+    .modal-input {
+      width: 100%; padding: 12px 16px; background: rgba(3,7,18,0.5);
+      border: 1px solid var(--panel-border); border-radius: 8px;
+      color: white; font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: 0.2s;
+    }
+    .modal-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+    
+    .modal-actions { display: flex; gap: 12px; margin-top: 10px; }
+    .modal-actions button { flex: 1; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; transition: 0.2s; }
+    .modal-actions button:active { transform: scale(0.96); }
+    .btn-cancel { background: transparent; color: var(--text-main); border: 1px solid var(--panel-border) !important; }
+    .btn-cancel:hover { background: rgba(255,255,255,0.05); }
+    .btn-confirm { background: var(--grad-primary); color: white; }
+    .btn-confirm.danger { background: var(--red); }
   </style>
 </head>
 <body>
@@ -417,14 +469,88 @@
 
   </main>
 
-  <div id="toast">✅ Sukses</div>
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+
+  <!-- CUSTOM MODAL OVERLAY -->
+  <div class="modal-overlay" id="custom-modal-overlay">
+    <div class="custom-modal" id="custom-modal">
+      <div class="modal-header">
+        <div class="modal-icon" id="modal-icon">ℹ️</div>
+        <div class="modal-title" id="modal-title">Konfirmasi</div>
+      </div>
+      <div class="modal-desc" id="modal-desc">Apakah Anda yakin?</div>
+      <input type="text" class="modal-input" id="modal-input" style="display: none;" placeholder="Ketik di sini..." />
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Batal</button>
+        <button class="btn-confirm" id="modal-confirm-btn">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    // --- UTILS ---
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3000);
+    // --- CUSTOM MODAL & TOAST UI ---
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      let icon = '✅';
+      if (type === 'error') icon = '❌';
+      else if (type === 'warning') icon = '⚠️';
+      
+      toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${msg}</span>`;
+      container.appendChild(toast);
+      
+      // Trigger animation
+      setTimeout(() => toast.classList.add('show'), 10);
+      
+      // Remove after 3s
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+      }, 3000);
+    }
+
+    let modalResolve = null;
+    function openModal({ type, title, message, placeholder, danger }, callback) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-desc').innerHTML = message;
+      
+      const input = document.getElementById('modal-input');
+      const icon = document.getElementById('modal-icon');
+      const btn = document.getElementById('modal-confirm-btn');
+      
+      if (type === 'prompt') {
+        input.style.display = 'block';
+        input.value = '';
+        input.placeholder = placeholder || 'Ketik sesuatu...';
+        icon.innerHTML = '📝';
+        icon.className = 'modal-icon info';
+      } else {
+        input.style.display = 'none';
+        icon.innerHTML = danger ? '🚨' : '❓';
+        icon.className = `modal-icon ${danger ? 'danger' : 'info'}`;
+      }
+      
+      btn.className = `btn-confirm ${danger ? 'danger' : ''}`;
+      btn.textContent = danger ? 'Hapus' : 'Konfirmasi';
+      
+      document.getElementById('custom-modal-overlay').classList.add('active');
+      
+      if(type === 'prompt') input.focus();
+      
+      btn.onclick = () => {
+        closeModal();
+        callback(type === 'prompt' ? input.value : true);
+      };
+      
+      // Allow enter key for prompt
+      input.onkeyup = (e) => { if (e.key === 'Enter') btn.click(); };
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal-overlay').classList.remove('active');
     }
 
     const dateOptions = { day: 'numeric', month: 'short', year: 'numeric' };
@@ -502,22 +628,28 @@
       refreshInterval = setInterval(fetchStatus, 3000);
     }
 
-    async function createNewBot() {
-      const name = prompt("Masukkan ID Client Baru (tanpa spasi):");
-      if (!name) return;
-      showToast('⏳ Provisioning new client instance...');
-      try {
-        const res = await fetch('/api/bots', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ botId: name })
-        });
-        const data = await res.json();
-        if(data.ok) {
-          showToast('✅ Client instance created!');
-          loadBotList();
-          selectBot(data.botId || name);
-        }
-      } catch(e) { showToast('❌ Failed to create client'); }
+    function createNewBot() {
+      openModal({
+        type: 'prompt',
+        title: 'Buat Client Baru',
+        message: 'Masukkan ID unik untuk slot bot baru ini. Jangan gunakan spasi (contoh: <b>klien-budi</b>).',
+        placeholder: 'klien-budi'
+      }, async (name) => {
+        if (!name || name.trim() === '') return;
+        showToast('Menyiapkan sesi baru...', 'warning');
+        try {
+          const res = await fetch('/api/bots', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ botId: name.trim() })
+          });
+          const data = await res.json();
+          if(data.ok) {
+            showToast('Client instance created!', 'success');
+            loadBotList();
+            selectBot(data.botId || name);
+          }
+        } catch(e) { showToast('Gagal membuat client', 'error'); }
+      });
     }
 
     async function fetchStatus() {
@@ -559,32 +691,52 @@
       }
     }
 
-    async function controlBot(action) {
+    function controlBot(action) {
       if(!activeBotId) return;
       const isLogout = action === 'logout';
-      if(isLogout && !confirm("⚠️ LOGOUT akan menghapus sesi WhatsApp klien ini! Lanjutkan?")) return;
+      
+      const sendAction = async () => {
+        try {
+          const res = await fetch(`/api/control/${activeBotId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+          if (res.ok) {
+            showToast(`Perintah ${action.toUpperCase()} dikirim`);
+            if(isLogout) { selectBot(null); setTimeout(loadBotList, 1000); }
+          }
+        } catch(e) { showToast('Server error', 'error'); }
+      };
 
-      try {
-        const res = await fetch(`/api/control/${activeBotId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
-        if (res.ok) {
-          showToast(`✅ Perintah dikirim`);
-          if(isLogout) { selectBot(null); setTimeout(loadBotList, 1000); }
-        }
-      } catch(e) { showToast('❌ Server error'); }
+      if(isLogout) {
+        openModal({
+          type: 'confirm',
+          title: 'Logout Sesi WhatsApp',
+          message: `Anda yakin ingin memutuskan koneksi <b>${activeBotId}</b>? Bot akan di-logout dan dihapus dari memori server.`,
+          danger: true
+        }, (confirmed) => { if(confirmed) sendAction(); });
+      } else {
+        sendAction();
+      }
     }
 
     function copyClientLink() {
       if(!activeBotId) return;
       const url = window.location.origin + '/scan.html?bot=' + activeBotId;
-      navigator.clipboard.writeText(url).then(() => showToast('✅ Link Scan QR Dicopy')).catch(() => showToast('❌ Gagal copy'));
+      navigator.clipboard.writeText(url).then(() => showToast('Link Scan QR Dicopy!')).catch(() => showToast('Gagal copy', 'error'));
     }
 
-    async function deleteAllBots() {
-      if(!confirm("🚨 HAPUS SEMUA KLIEN? Semua koneksi akan terputus!")) return;
-      try {
-        const res = await fetch('/api/bots/delete-all', { method: 'POST' });
-        if (res.ok) { showToast('✅ Semua klien dihapus'); selectBot(null); loadBotList(); }
-      } catch(e) {}
+    function deleteAllBots() {
+      openModal({
+        type: 'confirm',
+        title: 'HAPUS SEMUA KLIEN?',
+        message: 'Tindakan ini sangat berbahaya. <b>Semua</b> koneksi klien WhatsApp akan diputuskan dan memori akan dibersihkan.',
+        danger: true
+      }, async (confirmed) => {
+        if(!confirmed) return;
+        showToast('Memulai penghapusan massal...', 'warning');
+        try {
+          const res = await fetch('/api/bots/delete-all', { method: 'POST' });
+          if (res.ok) { showToast('Semua klien berhasil dihapus', 'success'); selectBot(null); loadBotList(); }
+        } catch(e) { showToast('Gagal menghapus', 'error'); }
+      });
     }
 
     // Init
