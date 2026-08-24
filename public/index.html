@@ -496,7 +496,7 @@
         const data = await res.json();
         
         // Update top global stat for total messages as dummy sum
-        document.getElementById('stat-requests').textContent = data.totalMessagesToday + 12450; // Add fake base for visual
+        // document.getElementById('stat-requests').textContent = data.totalMessagesToday + 12450; // REMOVED (moved to global analytics)
 
         updateQRPanel(data);
       } catch (e) {}
@@ -559,21 +559,21 @@
     loadBotList();
     setInterval(loadBotList, 5000);
 
-    // --- DUMMY CHARTS (To match image aesthetics) ---
+    // --- CHARTS & ANALYTICS ---
     const ctx1 = document.getElementById('chart1').getContext('2d');
-    new Chart(ctx1, {
+    const chart1 = new Chart(ctx1, {
       type: 'bar',
       data: {
-        labels: Array.from({length: 30}, (_, i) => i+1 + ' Sep'),
+        labels: Array.from({length: 30}, (_, i) => `R-${i+1}`),
         datasets: [{
           label: 'Requests',
-          data: Array.from({length: 30}, () => Math.floor(Math.random() * 40000) + 10000),
+          data: Array(30).fill(0),
           backgroundColor: '#3b82f6',
           borderRadius: 4
         }, {
           type: 'line',
           label: 'Success Rate',
-          data: Array.from({length: 30}, () => Math.floor(Math.random() * 50000) + 15000),
+          data: Array(30).fill(100),
           borderColor: '#10b981',
           tension: 0.4,
           borderWidth: 2,
@@ -584,24 +584,24 @@
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } },
+          x: { grid: { display: false }, ticks: { display: false } },
           y: { grid: { color: '#1e293b' }, ticks: { color: '#475569', font: { size: 10 } } }
         }
       }
     });
 
     const ctx2 = document.getElementById('chart2').getContext('2d');
-    new Chart(ctx2, {
+    const chart2 = new Chart(ctx2, {
       type: 'line',
       data: {
-        labels: Array.from({length: 15}, (_, i) => 'Day ' + (i+1)),
+        labels: Array.from({length: 15}, (_, i) => `T-${i+1}`),
         datasets: [{
-          label: 'GPT-4o Input',
-          data: Array.from({length: 15}, () => Math.floor(Math.random() * 50) + 10),
+          label: 'Input Tokens',
+          data: Array(15).fill(0),
           borderColor: '#3b82f6', tension: 0.4, borderWidth: 2, pointRadius: 0
         }, {
-          label: 'Claude 3.5 Output',
-          data: Array.from({length: 15}, () => Math.floor(Math.random() * 40) + 5),
+          label: 'Output Tokens',
+          data: Array(15).fill(0),
           borderColor: '#a855f7', tension: 0.4, borderWidth: 2, pointRadius: 0
         }]
       },
@@ -614,6 +614,60 @@
         }
       }
     });
+
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+      return num;
+    }
+
+    async function fetchAnalytics() {
+      try {
+        const res = await fetch('/api/analytics');
+        const data = await res.json();
+        
+        // Update Stats
+        document.getElementById('stat-requests').textContent = formatNumber(data.stats.totalRequests);
+        document.querySelectorAll('.stat-value')[1].textContent = data.stats.successRate + '%';
+        // document.getElementById('stat-clients').textContent = data.stats.activeClients;
+        document.querySelectorAll('.stat-value')[3].textContent = data.stats.avgResponse + 'ms';
+        document.querySelectorAll('.stat-value')[4].textContent = formatNumber(data.stats.totalTokens);
+        
+        // Update Charts
+        chart1.data.datasets[0].data = data.chartData.requests;
+        chart1.data.datasets[1].data = data.chartData.successRate;
+        chart1.update();
+        
+        chart2.data.datasets[0].data = data.chartData.tokenInput;
+        chart2.data.datasets[1].data = data.chartData.tokenOutput;
+        chart2.update();
+
+        // Update Live Feed
+        const feedContainer = document.querySelector('.activity-feed');
+        // keep the title
+        let feedHTML = '<div style="font-size: 12px; font-weight: 600; margin-bottom: 8px;">Live Activity Feed</div>';
+        
+        if (data.liveFeed.length === 0) {
+            feedHTML += '<div class="feed-item"><div class="feed-text" style="color:var(--text-sub)">No activity yet</div></div>';
+        } else {
+            data.liveFeed.forEach(log => {
+                const msAgo = Date.now() - log.time;
+                let timeStr = 'just now';
+                if(msAgo > 60000) timeStr = Math.floor(msAgo/60000) + 'm ago';
+                else if(msAgo > 1000) timeStr = Math.floor(msAgo/1000) + 's ago';
+                
+                feedHTML += `<div class="feed-item"><div class="feed-text"><span style="color:var(--${log.type})">●</span> <span>${log.text}</span></div><div class="feed-time">${timeStr}</div></div>`;
+            });
+        }
+        feedContainer.innerHTML = feedHTML;
+        
+      } catch (e) {}
+    }
+
+    setInterval(fetchAnalytics, 3000);
+    fetchAnalytics(); // initial
+
+    // Uptime simulation (keeps running client side)
 
     // Uptime simulation
     setInterval(() => {

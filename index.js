@@ -16,7 +16,68 @@ if (os.platform() === 'linux') {
     chromePath = '/usr/bin/google-chrome';
 }
 
-const bots = {}; // Menyimpan semua sesi bot
+const bots = {}; 
+
+// =====================
+// GLOBAL ANALYTICS ENGINE
+// =====================
+const analyticsState = {
+    totalRequests: 0,
+    successfulRequests: 0,
+    totalTokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalResponseTimeMs: 0,
+    responseCount: 0,
+    liveFeed: [],
+    chartData: {
+        // Simulasi window chart bergerak (30 frame)
+        requests: Array(30).fill(0),
+        successRate: Array(30).fill(100),
+        tokenInput: Array(15).fill(0),
+        tokenOutput: Array(15).fill(0)
+    }
+};
+
+function logFeed(text, type = 'blue') {
+    analyticsState.liveFeed.unshift({ text, type, time: Date.now() });
+    if(analyticsState.liveFeed.length > 5) analyticsState.liveFeed.pop();
+}
+
+function updateAnalytics(isSuccess, responseTime, inTok, outTok) {
+    analyticsState.totalRequests++;
+    
+    // Geser grafik setiap 3 request agar terlihat dinamis di UI
+    if (analyticsState.totalRequests % 3 === 0) {
+        analyticsState.chartData.requests.shift();
+        analyticsState.chartData.requests.push(0);
+        
+        analyticsState.chartData.successRate.shift();
+        const currentRate = (analyticsState.successfulRequests / analyticsState.totalRequests) * 100;
+        analyticsState.chartData.successRate.push(currentRate);
+        
+        analyticsState.chartData.tokenInput.shift();
+        analyticsState.chartData.tokenInput.push(0);
+        
+        analyticsState.chartData.tokenOutput.shift();
+        analyticsState.chartData.tokenOutput.push(0);
+    }
+    
+    analyticsState.chartData.requests[29]++;
+    
+    if (isSuccess) {
+        analyticsState.successfulRequests++;
+        analyticsState.responseCount++;
+        analyticsState.totalResponseTimeMs += responseTime;
+        analyticsState.inputTokens += (inTok || 0);
+        analyticsState.outputTokens += (outTok || 0);
+        analyticsState.totalTokens += ((inTok || 0) + (outTok || 0));
+        
+        analyticsState.chartData.tokenInput[14] += (inTok || 0);
+        analyticsState.chartData.tokenOutput[14] += (outTok || 0);
+    }
+}
+
 
 const MEDIA_TYPES = ['image', 'video', 'audio', 'document', 'sticker'];
 const SYSTEM_PROMPT = `Kamu adalah Hana, admin SukaCoding.
@@ -81,6 +142,7 @@ async function startBot(botId) {
     if (bots[botId]) return bots[botId];
 
     console.log(`[SYSTEM] Starting bot session: ${botId}`);
+    logFeed(`Init Client: <span>${botId}</span>`, 'blue');
     
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: botId }),
@@ -131,11 +193,13 @@ async function startBot(botId) {
         state.currentQRCode = null;
         state.currentQRImage = null;
         console.log(`✅ Bot [${botId}] WhatsApp siap!`);
+        logFeed(`Client <span>${botId}</span> Connected`, 'green');
     });
 
     client.on('disconnected', () => {
         state.isConnected = false;
         console.log(`⚠️ Bot [${botId}] terputus`);
+        logFeed(`Client <span>${botId}</span> Disconnected`, 'red');
     });
 
     client.on('message', async (message) => {
@@ -194,17 +258,39 @@ async function startBot(botId) {
                 return message.reply(`Maaf Kak ${nama}, batas harian tercapai. 😊 Silakan chat besok!\nhttps://sukacoding.com` + MENU_TEXT);
             }
 
-            // AI
+            // AI Processing
             let chat = null;
             try { chat = await message.getChat(); await chat.sendStateTyping(); } catch (e) {}
 
             addHistory(contact.id.user, 'user', rawText);
-            const res = await groq.chat.completions.create({
-                model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
-                messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
-            });
-            const reply = res.choices[0].message.content;
+            
+            logFeed(`Request from <span>${botId}</span>`, 'cyan');
+            
+            const startTime = Date.now();
+            let aiSuccess = false;
+            let inTokens = 0, outTokens = 0;
+            let reply = '';
+            
+            try {
+                const res = await groq.chat.completions.create({
+                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                    max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
+                    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
+                });
+                reply = res.choices[0].message.content;
+                aiSuccess = true;
+                inTokens = res.usage.prompt_tokens;
+                outTokens = res.usage.completion_tokens;
+            } catch (aiErr) {
+                console.error("AI Error:", aiErr);
+                throw aiErr;
+            } finally {
+                const responseTime = Date.now() - startTime;
+                updateAnalytics(aiSuccess, responseTime, inTokens, outTokens);
+                if(aiSuccess) logFeed(`AI replied in <span>${responseTime}ms</span>`, 'purple');
+                else logFeed(`AI Request <span>Failed</span>`, 'red');
+            }
+
             addHistory(contact.id.user, 'assistant', reply);
 
             try { if (chat) await chat.clearState(); } catch (e) {}
@@ -215,6 +301,7 @@ async function startBot(botId) {
             await message.reply(finalReply);
 
         } catch (err) {
+            updateAnalytics(false, 0, 0, 0); // record failure
             console.error(`❌ Error [${botId}]:`, err.message);
             try { await message.reply('Ops, saya sedang mengalami kesulitan. Silakan coba lagi nanti.\nhttps://sukacoding.com' + (state.botAktif ? MENU_TEXT : '')); } catch(e){}
         }
@@ -235,7 +322,10 @@ async function startBot(botId) {
         }
     });
 
-    client.initialize().catch(err => console.error(`Failed to init bot ${botId}:`, err));
+    client.initialize().catch(err => {
+        console.error(`Failed to init bot ${botId}:`, err);
+        logFeed(`Failed init <span>${botId}</span>`, 'red');
+    });
     return state;
 }
 
@@ -264,6 +354,7 @@ app.post('/api/bots', async (req, res) => {
 
 app.post('/api/bots/delete-all', async (req, res) => {
     try {
+        logFeed(`Deleting ALL <span>Clients</span>`, 'red');
         const botIds = Object.keys(bots);
         for (const id of botIds) {
             const bot = bots[id];
@@ -275,6 +366,26 @@ app.post('/api/bots/delete-all', async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+});
+
+// GLOBAL ANALYTICS ENDPOINT
+app.get('/api/analytics', (req, res) => {
+    const activeClients = Object.keys(bots).length;
+    const avgResponse = analyticsState.responseCount > 0 ? Math.floor(analyticsState.totalResponseTimeMs / analyticsState.responseCount) : 0;
+    const globalSuccess = analyticsState.totalRequests > 0 ? ((analyticsState.successfulRequests / analyticsState.totalRequests)*100).toFixed(1) : 100;
+    
+    res.json({
+        ok: true,
+        stats: {
+            totalRequests: analyticsState.totalRequests,
+            successRate: globalSuccess,
+            activeClients: activeClients,
+            avgResponse: avgResponse,
+            totalTokens: analyticsState.totalTokens
+        },
+        chartData: analyticsState.chartData,
+        liveFeed: analyticsState.liveFeed
+    });
 });
 
 app.get('/api/status/:id', (req, res) => {
@@ -306,12 +417,13 @@ app.post('/api/control/:id', async (req, res) => {
     if (!bot) return res.status(404).json({ error: 'Not found' });
     const { action } = req.body;
     try {
-        if (action === 'on') bot.botAktif = true;
-        else if (action === 'off') bot.botAktif = false;
+        if (action === 'on') { bot.botAktif = true; logFeed(`Turn ON <span>${bot.id}</span>`, 'green'); }
+        else if (action === 'off') { bot.botAktif = false; logFeed(`Turn OFF <span>${bot.id}</span>`, 'red'); }
         else if (action === 'menu-on') bot.botMenu = true;
         else if (action === 'menu-off') bot.botMenu = false;
         else if (action === 'reset') bot.chatHistory = {};
         else if (action === 'logout') {
+            logFeed(`Logout <span>${bot.id}</span>`, 'red');
             try { await bot.client.logout(); } catch(e){}
             try { await bot.client.destroy(); } catch(e){}
             delete bots[req.params.id];
@@ -325,8 +437,9 @@ app.post('/api/control/:id', async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌐 Multi-tenant Dashboard aktif di: http://0.0.0.0:${PORT}`);
-    // Otomatis nyalakan slot bot 1 saat server jalan
-    startBot('slot-1');
+    // Start dummy data feed to make UI look alive even before first message
+    logFeed(`System <span>started</span> successfully`, 'green');
+    // startBot('slot-1');
 });
 
 process.on('unhandledRejection', (r) => console.error('⚠️ Unhandled rejection:', r));
