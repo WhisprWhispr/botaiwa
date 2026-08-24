@@ -7,7 +7,7 @@ const path = require('path');
 require('dotenv').config();
 
 // =====================================================
-// WHATSAPP AI BOT — Template by Yusril (@yusrilasrul_)
+// WHATSAPP AI BOT — SukaCoding
 // =====================================================
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -55,7 +55,7 @@ const MEDIA_TYPES = ['image', 'video', 'audio', 'document', 'sticker'];
 // SYSTEM PROMPT AI
 // Ubah sesuai bisnis/kebutuhan kamu
 // =====================
-const SYSTEM_PROMPT = `Kamu adalah Hana, admin KelasWeb3.
+const SYSTEM_PROMPT = `Kamu adalah Hana, admin SukaCoding.
 
 Gaya:
 - ramah, santai, persuasif
@@ -63,7 +63,7 @@ Gaya:
 - emoji minimal
 
 Fokus:
-- hanya jawab tentang KelasWeb3
+- hanya jawab tentang SukaCoding
 - jangan bahas teknis mendalam, agama(kecuali jawab salam), politik, dll
 - jika ada yang tanya tentang modul atau materi, arahkan ke website atau instagram
 
@@ -72,14 +72,13 @@ Catatan penting:
 - Tetap jawab pertanyaannya berdasarkan teks yang dikirim, dan beritahu bahwa kamu tidak bisa melihat isi gambarnya jika diperlukan
 - jika user ingin berbicara dengan CS manusia, arahkan untuk balas dengan angka "6"
 
-Informasi KelasWeb3:
-- Deskripsi: kelas online untuk belajar bangun aplikasi Web terintegrasi blockchain
-- Instagram: https://www.instagram.com/kelasweb3/
-- Website: https://kelasweb3.com
+Informasi SukaCoding:
+- Deskripsi: Platform belajar ngoding online terbaik, fokus ke Web Development & AI
+- Instagram: https://www.instagram.com/sukacoding/
+- Website: https://sukacoding.com
 - Harga promo: Rp149.000 (lifetime/seumur hidup) dari harga normal Rp350.000
-- Target: pemula hingga developer yang mau naik level ke Web3
-- Pengajar: Yusril, developer Web2 & Web3
-- Instagram pengajar: https://www.instagram.com/yusrilasrul_/`;
+- Target: pemula hingga mahir yang ingin upgrade skill programming
+- Pengajar: Tim SukaCoding, developer berpengalaman`;
 
 // =====================
 // MENU TEXT
@@ -195,10 +194,10 @@ const handleMedia = (message) => {
 // =====================
 const handleMenu = (text) => {
     if (text === '1') {
-        return 'Harga promo Rp149.000 (lifetime) dari Rp350.000.\nMau daftar? 👉 https://kelasweb3.com\n\nBalas "2" untuk lihat cara daftarnya';
+        return 'Harga promo Rp149.000 (lifetime) dari Rp350.000.\nMau daftar? 👉 https://sukacoding.com\n\nBalas "2" untuk lihat cara daftarnya';
     }
     if (text === '2') {
-        return 'Cara daftar gampang banget!\nLangsung ke https://kelasweb3.com → klik Daftar → isi data → bayar → langsung akses materi! 😊';
+        return 'Cara daftar gampang banget!\nLangsung ke https://sukacoding.com → klik Daftar → isi data → bayar → langsung akses materi! 😊';
     }
     if (text === '3') {
         return 'Materinya dari nol dan step-by-step.\n' +
@@ -217,8 +216,8 @@ const handleMenu = (text) => {
                'Tunggu ya, paling lama 1x24 jam 😊';
     }
     if (text === '5') {
-        return 'Pengajar di KelasWeb3 adalah Yusril, seorang developer Web2 & Web3.\n' +
-               'Follow Instagram-nya: https://www.instagram.com/yusrilasrul_/ 🚀\n\n' +
+        return 'Pengajar di SukaCoding adalah developer-developer berpengalaman di industri.\n' +
+               'Cek portofolio kami di website: https://sukacoding.com 🚀\n\n' +
                'Balas "3" untuk lihat materi yang dipelajari';
     }
     return null;
@@ -231,7 +230,7 @@ const handleMenu = (text) => {
 const handleHotLead = (text) => {
     const hotKeywords = ['mau daftar', 'mau beli', 'tertarik', 'gimana cara daftar', 'mau ikut'];
     if (hotKeywords.some(keyword => text.includes(keyword))) {
-        return `Mantap kak! 🚀\nLangsung daftar di sini ya:\nhttps://kelasweb3.com\n\nPromo masih aktif, jangan sampai kehabisan! 👍`;
+        return `Mantap kak! 🚀\nLangsung daftar di sini ya:\nhttps://sukacoding.com\n\nPromo masih aktif, jangan sampai kehabisan! 👍`;
     }
     return null;
 };
@@ -398,7 +397,7 @@ client.on('message', async (message) => {
                 `Maaf Kak ${nama}, batas percakapan harian kakak sudah tercapai. 😊\n` +
                 'Silakan chat lagi besok ya!\n\n' +
                 'Sementara itu, kamu bisa lihat info lengkap di:\n' +
-                'https://kelasweb3.com' +
+                'https://sukacoding.com' +
                 MENU_TEXT
             );
         }
@@ -421,7 +420,7 @@ client.on('message', async (message) => {
         try {
             await message.reply(
                 'Ops, saya sedang mengalami kesulitan untuk menjawab. Silakan coba lagi nanti.\n' +
-                'Silakan kunjungi https://kelasweb3.com untuk informasi lebih lanjut.' +
+                'Silakan kunjungi https://sukacoding.com untuk informasi lebih lanjut.' +
                 (botAktif ? MENU_TEXT : '')
             );
         } catch (e) {}
