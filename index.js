@@ -374,6 +374,11 @@ app.get('/api/analytics', (req, res) => {
     const avgResponse = analyticsState.responseCount > 0 ? Math.floor(analyticsState.totalResponseTimeMs / analyticsState.responseCount) : 0;
     const globalSuccess = analyticsState.totalRequests > 0 ? ((analyticsState.successfulRequests / analyticsState.totalRequests)*100).toFixed(1) : 100;
     
+    // Server Load Calculation (RAM)
+    const freeMem = os.freemem();
+    const totalMem = os.totalmem();
+    const memLoad = ((totalMem - freeMem) / totalMem * 100).toFixed(1);
+
     res.json({
         ok: true,
         stats: {
@@ -381,7 +386,8 @@ app.get('/api/analytics', (req, res) => {
             successRate: globalSuccess,
             activeClients: activeClients,
             avgResponse: avgResponse,
-            totalTokens: analyticsState.totalTokens
+            totalTokens: analyticsState.totalTokens,
+            serverLoad: memLoad
         },
         chartData: analyticsState.chartData,
         liveFeed: analyticsState.liveFeed

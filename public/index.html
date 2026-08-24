@@ -227,14 +227,14 @@
     </div>
     
     <ul class="menu">
-      <li class="menu-item active"><span class="menu-icon">📊</span> Dashboard</li>
-      <li class="menu-item"><span class="menu-icon">📈</span> Analytics</li>
-      <li class="menu-item"><span class="menu-icon">🧠</span> Models</li>
-      <li class="menu-item"><span class="menu-icon">⚙️</span> API Management</li>
-      <li class="menu-item"><span class="menu-icon">⚡</span> Live Logs</li>
-      <li class="menu-item"><span class="menu-icon">👥</span> Clients (Bots)</li>
-      <li class="menu-item"><span class="menu-icon">💳</span> Billing</li>
-      <li class="menu-item"><span class="menu-icon">🔔</span> Alerts</li>
+      <li class="menu-item active" onclick="switchTab('dashboard', this)"><span class="menu-icon">📊</span> Dashboard</li>
+      <li class="menu-item" onclick="switchTab('analytics', this)"><span class="menu-icon">📈</span> Analytics</li>
+      <li class="menu-item" onclick="switchTab('comingsoon', this)"><span class="menu-icon">🧠</span> Models</li>
+      <li class="menu-item" onclick="switchTab('comingsoon', this)"><span class="menu-icon">⚙️</span> API Management</li>
+      <li class="menu-item" onclick="switchTab('livelogs', this)"><span class="menu-icon">⚡</span> Live Logs</li>
+      <li class="menu-item" onclick="switchTab('clients', this)"><span class="menu-icon">👥</span> Clients (Bots)</li>
+      <li class="menu-item" onclick="switchTab('comingsoon', this)"><span class="menu-icon">💳</span> Billing</li>
+      <li class="menu-item" onclick="switchTab('comingsoon', this)"><span class="menu-icon">🔔</span> Alerts</li>
     </ul>
 
     <div class="power-box">
@@ -260,126 +260,158 @@
       </div>
     </header>
 
-    <!-- STATS ROW -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-head"><span>Total Requests</span> <span>⚡</span></div>
-        <div class="stat-value" id="stat-requests">0</div>
-        <div class="stat-trend trend-up">↗ +12.4% (Global)</div>
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard" class="view-section">
+      <!-- STATS ROW -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-head"><span>Total Requests</span> <span>⚡</span></div>
+          <div class="stat-value" id="stat-requests">0</div>
+          <div class="stat-trend trend-up">↗ +12.4% (Global)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><span>Success Rate</span> <span>✅</span></div>
+          <div class="stat-value">99.8%</div>
+          <div class="stat-trend trend-up">↗ +0.5% (Global)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><span>Active Clients</span> <span>👥</span></div>
+          <div class="stat-value" id="stat-clients">0</div>
+          <div class="stat-trend trend-up">↗ Live Bots</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><span>Avg Response</span> <span>⏱️</span></div>
+          <div class="stat-value">342ms</div>
+          <div class="stat-trend trend-down">↘ -12ms (Cepat)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head"><span>Total Tokens</span> <span>🧠</span></div>
+          <div class="stat-value">12.4M</div>
+          <div class="stat-trend trend-up">↗ Llama-3.1</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-head"><span>Success Rate</span> <span>✅</span></div>
-        <div class="stat-value">99.8%</div>
-        <div class="stat-trend trend-up">↗ +0.5% (Global)</div>
+
+      <!-- CHARTS ROW (Aesthetics/Dummy Data) -->
+      <div class="charts-row">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><span style="color:var(--green)">● LIVE</span> Request & Success Rate</div>
+          </div>
+          <div class="chart-box"><canvas id="chart1"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">AI Token Usage by Model (Simulated)</div>
+          </div>
+          <div class="chart-box"><canvas id="chart2"></canvas></div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-head"><span>Active Clients</span> <span>👥</span></div>
-        <div class="stat-value" id="stat-clients">0</div>
-        <div class="stat-trend trend-up">↗ Live Bots</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-head"><span>Avg Response</span> <span>⏱️</span></div>
-        <div class="stat-value">342ms</div>
-        <div class="stat-trend trend-down">↘ -12ms (Cepat)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-head"><span>Total Tokens</span> <span>🧠</span></div>
-        <div class="stat-value">12.4M</div>
-        <div class="stat-trend trend-up">↗ Llama-3.1</div>
+
+      <!-- FOOTER STATS -->
+      <div class="footer-stats">
+        <div class="f-stat">
+          <h4>System Uptime</h4>
+          <div class="val" id="uptime-val">99.99%</div>
+          <div class="sub">● Excellent</div>
+        </div>
+        <div class="f-stat">
+          <h4>Active Models</h4>
+          <div class="val">1</div>
+          <div class="sub">● Llama-3.1</div>
+        </div>
+        <div class="f-stat">
+          <h4>API Endpoints</h4>
+          <div class="val">5</div>
+          <div class="sub">● Secured</div>
+        </div>
+        <div class="f-stat">
+          <h4>Server Load (RAM)</h4>
+          <div class="val" id="stat-load">12%</div>
+          <div class="sub">● Real-time</div>
+        </div>
+        <div class="activity-feed">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px;">Live Activity Feed</div>
+          <div id="feed-container"></div>
+        </div>
       </div>
     </div>
 
-    <!-- DASHBOARD GRID (Real Features) -->
-    <div class="dashboard-grid">
-      
-      <!-- BOT LIST PANEL -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">👥 Client Management (Bots)</div>
-          <div style="font-size: 11px; color: var(--text-sub);">Pilih klien untuk mengatur koneksi</div>
-        </div>
-        <div class="bot-list" id="bot-list">
-          <!-- Item bot dimuat via JS -->
-        </div>
-        <div class="action-row">
-          <button class="btn btn-primary" onclick="createNewBot()">➕ Add New Client</button>
-          <button class="btn btn-danger" onclick="deleteAllBots()">🗑 Delete All</button>
-        </div>
-      </div>
-
-      <!-- BOT CONTROL PANEL -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">📱 Connection & Controls</div>
-          <div style="font-size: 12px; color: var(--cyan); font-weight: 600;" id="active-bot-name">-- Select Client --</div>
-        </div>
-        
-        <div class="qr-container">
-          <div class="qr-placeholder" id="qr-placeholder">
-            <span style="font-size: 32px; margin-bottom: 8px;">💤</span>
-            <span style="font-size: 12px;">Pilih klien di list sebelah kiri</span>
+    <!-- CLIENTS VIEW (Bot Manager) -->
+    <div id="view-clients" class="view-section" style="display: none;">
+      <div class="dashboard-grid">
+        <!-- BOT LIST PANEL -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">👥 Client Management (Bots)</div>
+            <div style="font-size: 11px; color: var(--text-sub);">Pilih klien untuk mengatur koneksi</div>
           </div>
-          <img id="qr-img" class="qr-box" src="" alt="QR" />
-          <div class="qr-success" id="qr-success">
-            <div class="icon">✅</div>
-            <h3 style="font-size: 18px; margin-bottom: 4px;">Connected</h3>
-            <span style="font-size: 12px; color: var(--text-sub);">Bot AI sedang melayani pesan</span>
+          <div class="bot-list" id="bot-list">
+            <!-- Item bot dimuat via JS -->
           </div>
-
-          <div class="bot-controls" id="bot-controls" style="display: none;">
-            <button class="btn btn-outline btn-sm" onclick="copyClientLink()">🔗 Copy Scan Link</button>
-            <button class="btn btn-danger btn-sm" style="background: rgba(239,68,68,0.2)" onclick="controlBot('logout')">🛑 LOGOUT SESI</button>
-            <button class="btn btn-outline btn-sm" style="color: var(--green); border-color: rgba(16,185,129,0.3);" onclick="controlBot('on')">▶️ Turn ON</button>
-            <button class="btn btn-outline btn-sm" style="color: var(--red); border-color: rgba(239,68,68,0.3);" onclick="controlBot('off')">⏸ Turn OFF</button>
+          <div class="action-row">
+            <button class="btn btn-primary" onclick="createNewBot()">➕ Add New Client</button>
+            <button class="btn btn-danger" onclick="deleteAllBots()">🗑 Delete All</button>
           </div>
         </div>
-      </div>
 
-    </div>
+        <!-- BOT CONTROL PANEL -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📱 Connection & Controls</div>
+            <div style="font-size: 12px; color: var(--cyan); font-weight: 600;" id="active-bot-name">-- Select Client --</div>
+          </div>
+          
+          <div class="qr-container">
+            <div class="qr-placeholder" id="qr-placeholder">
+              <span style="font-size: 32px; margin-bottom: 8px;">💤</span>
+              <span style="font-size: 12px;">Pilih klien di list sebelah kiri</span>
+            </div>
+            <img id="qr-img" class="qr-box" src="" alt="QR" />
+            <div class="qr-success" id="qr-success">
+              <div class="icon">✅</div>
+              <h3 style="font-size: 18px; margin-bottom: 4px;">Connected</h3>
+              <span style="font-size: 12px; color: var(--text-sub);">Bot AI sedang melayani pesan</span>
+            </div>
 
-    <!-- CHARTS ROW (Aesthetics/Dummy Data) -->
-    <div class="charts-row">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title"><span style="color:var(--green)">● LIVE</span> Request & Success Rate</div>
+            <div class="bot-controls" id="bot-controls" style="display: none;">
+              <button class="btn btn-outline btn-sm" onclick="copyClientLink()">🔗 Copy Scan Link</button>
+              <button class="btn btn-danger btn-sm" style="background: rgba(239,68,68,0.2)" onclick="controlBot('logout')">🛑 LOGOUT SESI</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--green); border-color: rgba(16,185,129,0.3);" onclick="controlBot('on')">▶️ Turn ON</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--red); border-color: rgba(239,68,68,0.3);" onclick="controlBot('off')">⏸ Turn OFF</button>
+            </div>
+          </div>
         </div>
-        <div class="chart-box"><canvas id="chart1"></canvas></div>
-      </div>
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">AI Token Usage by Model (Simulated)</div>
-        </div>
-        <div class="chart-box"><canvas id="chart2"></canvas></div>
       </div>
     </div>
 
-    <!-- FOOTER STATS -->
-    <div class="footer-stats">
-      <div class="f-stat">
-        <h4>System Uptime</h4>
-        <div class="val" id="uptime-val">99.99%</div>
-        <div class="sub">● Excellent</div>
+    <!-- ANALYTICS VIEW -->
+    <div id="view-analytics" class="view-section" style="display: none;">
+      <div class="panel" style="height: 500px; margin-bottom: 20px;">
+          <div class="panel-header">
+            <div class="panel-title">Detailed Request Analytics</div>
+          </div>
+          <div class="chart-box" style="height: 400px;"><canvas id="chart-big"></canvas></div>
       </div>
-      <div class="f-stat">
-        <h4>Active Models</h4>
-        <div class="val">1</div>
-        <div class="sub">● Llama-3.1</div>
+    </div>
+
+    <!-- LIVE LOGS VIEW -->
+    <div id="view-livelogs" class="view-section" style="display: none;">
+      <div class="panel" style="height: 80vh; overflow-y: auto;">
+          <div class="panel-header">
+            <div class="panel-title"><span style="color:var(--green)">● LIVE</span> Server Terminal Logs</div>
+          </div>
+          <div id="terminal-logs" style="font-family: monospace; font-size: 13px; display: flex; flex-direction: column; gap: 8px;">
+              <!-- Logs go here -->
+          </div>
       </div>
-      <div class="f-stat">
-        <h4>API Endpoints</h4>
-        <div class="val">5</div>
-        <div class="sub">● Secured</div>
-      </div>
-      <div class="f-stat">
-        <h4>Server Load</h4>
-        <div class="val">12%</div>
-        <div class="sub">● Optimal</div>
-      </div>
-      <div class="activity-feed">
-        <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px;">Live Activity Feed</div>
-        <div class="feed-item"><div class="feed-text"><span style="color:var(--blue)">●</span> <span>System check</span> verified</div><div class="feed-time">1s ago</div></div>
-        <div class="feed-item"><div class="feed-text"><span style="color:var(--green)">●</span> <span>API Server</span> listening on port 3000</div><div class="feed-time">12s ago</div></div>
-        <div class="feed-item"><div class="feed-text"><span style="color:var(--purple)">●</span> <span>LLM Module</span> loaded successfully</div><div class="feed-time">45s ago</div></div>
+    </div>
+
+    <!-- COMING SOON VIEW -->
+    <div id="view-comingsoon" class="view-section" style="display: none;">
+      <div class="panel" style="height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+          <div style="font-size: 60px; margin-bottom: 20px;">🚧</div>
+          <h2 style="margin-bottom: 10px;">Fitur Sedang Dibangun</h2>
+          <p style="color: var(--text-sub);">Halaman ini akan tersedia di update versi SukaCoding berikutnya.</p>
       </div>
     </div>
 
@@ -615,6 +647,28 @@
       }
     });
 
+    const ctxBig = document.getElementById('chart-big').getContext('2d');
+    const chartBig = new Chart(ctxBig, {
+      type: 'line',
+      data: {
+        labels: Array.from({length: 30}, (_, i) => `R-${i+1}`),
+        datasets: [{
+          label: 'Total Requests',
+          data: Array(30).fill(0),
+          borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',
+          tension: 0.4, borderWidth: 3, fill: true, pointRadius: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+          y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } }
+        }
+      }
+    });
+
     function formatNumber(num) {
       if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
       if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -629,9 +683,10 @@
         // Update Stats
         document.getElementById('stat-requests').textContent = formatNumber(data.stats.totalRequests);
         document.querySelectorAll('.stat-value')[1].textContent = data.stats.successRate + '%';
-        // document.getElementById('stat-clients').textContent = data.stats.activeClients;
+        document.getElementById('stat-clients').textContent = data.stats.activeClients;
         document.querySelectorAll('.stat-value')[3].textContent = data.stats.avgResponse + 'ms';
         document.querySelectorAll('.stat-value')[4].textContent = formatNumber(data.stats.totalTokens);
+        document.getElementById('stat-load').textContent = (data.stats.serverLoad || '10.0') + '%';
         
         // Update Charts
         chart1.data.datasets[0].data = data.chartData.requests;
@@ -642,13 +697,18 @@
         chart2.data.datasets[1].data = data.chartData.tokenOutput;
         chart2.update();
 
-        // Update Live Feed
-        const feedContainer = document.querySelector('.activity-feed');
-        // keep the title
-        let feedHTML = '<div style="font-size: 12px; font-weight: 600; margin-bottom: 8px;">Live Activity Feed</div>';
+        chartBig.data.datasets[0].data = data.chartData.requests;
+        chartBig.update();
+
+        // Update Live Feed & Terminal Logs
+        const feedContainer = document.getElementById('feed-container');
+        const terminalLogs = document.getElementById('terminal-logs');
+        let feedHTML = '';
+        let terminalHTML = '';
         
         if (data.liveFeed.length === 0) {
-            feedHTML += '<div class="feed-item"><div class="feed-text" style="color:var(--text-sub)">No activity yet</div></div>';
+            feedHTML = '<div class="feed-item"><div class="feed-text" style="color:var(--text-sub)">No activity yet</div></div>';
+            terminalHTML = '<div>Waiting for system events...</div>';
         } else {
             data.liveFeed.forEach(log => {
                 const msAgo = Date.now() - log.time;
@@ -657,11 +717,33 @@
                 else if(msAgo > 1000) timeStr = Math.floor(msAgo/1000) + 's ago';
                 
                 feedHTML += `<div class="feed-item"><div class="feed-text"><span style="color:var(--${log.type})">●</span> <span>${log.text}</span></div><div class="feed-time">${timeStr}</div></div>`;
+                
+                const timeLabel = new Date(log.time).toLocaleTimeString();
+                terminalHTML += `<div><span style="color:var(--text-sub)">[${timeLabel}]</span> <span style="color:var(--${log.type})">[INFO]</span> ${log.text}</div>`;
             });
         }
-        feedContainer.innerHTML = feedHTML;
+        if(feedContainer) feedContainer.innerHTML = feedHTML;
+        if(terminalLogs) terminalLogs.innerHTML = terminalHTML;
         
       } catch (e) {}
+    }
+
+    // --- TAB SWITCHING LOGIC ---
+    function switchTab(tabId, el) {
+        // Update active class
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        el.classList.add('active');
+
+        // Hide all views
+        document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
+        
+        // Show selected view
+        const target = document.getElementById('view-' + tabId);
+        if(target) target.style.display = 'block';
+
+        // Re-render charts if analytics view
+        if(tabId === 'dashboard') { chart1.update(); chart2.update(); }
+        if(tabId === 'analytics') { chartBig.update(); }
     }
 
     setInterval(fetchAnalytics, 3000);
