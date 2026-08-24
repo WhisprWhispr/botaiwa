@@ -569,6 +569,28 @@
     let refreshInterval = null;
 
     function createNewBot() {
+      openModal({
+        type: 'prompt',
+        title: 'Buat Client Baru',
+        message: 'Masukkan ID unik untuk slot bot baru ini. Jangan gunakan spasi (contoh: <b>klien-budi</b>).',
+        placeholder: 'klien-budi'
+      }, async (name) => {
+        if (!name || name.trim() === '') return;
+        showToast('Menyiapkan sesi baru...', 'warning');
+        try {
+          const res = await fetch('/api/bots', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ botId: name.trim() })
+          });
+          const data = await res.json();
+          if(data.ok) {
+            showToast('Client instance created!', 'success');
+            loadBotList();
+            selectBot(data.botId || name);
+          }
+        } catch(e) { showToast('Gagal membuat client', 'error'); }
+      });
+    }
 
     async function loadBotList() {
       try {
