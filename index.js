@@ -12,12 +12,19 @@ require('dotenv').config();
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+const os = require('os');
 const { executablePath } = require('puppeteer');
+
+// Paksa pakai Chrome system di Linux (Railway) supaya tidak error libglib
+let chromePath = executablePath();
+if (os.platform() === 'linux') {
+    chromePath = '/usr/bin/google-chrome';
+}
 
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || executablePath(),
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || chromePath,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     }
 });
