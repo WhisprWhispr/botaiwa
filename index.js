@@ -399,8 +399,8 @@ app.post('/api/bots/delete-all', async (req, res) => {
         const botIds = Object.keys(bots);
         for (const id of botIds) {
             const bot = bots[id];
-            try { await bot.client.logout(); } catch(e){}
-            try { await bot.client.destroy(); } catch(e){}
+            bot.client.logout().catch(e => {});
+            bot.client.destroy().catch(e => {});
             delete bots[id];
         }
         
@@ -481,9 +481,14 @@ app.post('/api/control/:id', async (req, res) => {
         else if (action === 'reset') { bot.chatHistory = {}; logFeed(`Reset History <span>${bot.id}</span>`, 'cyan'); }
         else if (action === 'logout') {
             logFeed(`Logout <span>${bot.id}</span>`, 'red');
-            try { await bot.client.logout(); } catch(e){}
-            try { await bot.client.destroy(); } catch(e){}
+            bot.client.logout().catch(e => {});
+            bot.client.destroy().catch(e => {});
             delete bots[req.params.id];
+            
+            try {
+                fs.rmSync(path.join(__dirname, '.wwebjs_auth', `session-${req.params.id}`), { recursive: true, force: true });
+            } catch (e) {}
+
             return res.json({ ok: true, message: 'Logged out and deleted' });
         }
         res.json({ ok: true });
