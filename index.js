@@ -2,6 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const Groq = require('groq-sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const express = require('express');
 const path = require('path');
 const os = require('os');
@@ -10,6 +11,7 @@ const { executablePath } = require('puppeteer');
 require('dotenv').config();
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 const ADMIN_ID = process.env.ADMIN_ID;
 
 let chromePath = executablePath();
@@ -285,15 +287,38 @@ async function startBot(botId) {
             let reply = '';
             
             try {
-                const res = await groq.chat.completions.create({
-                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                    max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
-                    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
-                });
-                reply = res.choices[0].message.content;
-                aiSuccess = true;
-                inTokens = res.usage.prompt_tokens;
-                outTokens = res.usage.completion_tokens;
+                const provider = process.env.AI_PROVIDER || 'groq';
+
+                if (provider === 'gemini' && genAI) {
+                    // === GOOGLE GEMINI ===
+                    const model = genAI.getGenerativeModel({
+                        model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                        systemInstruction: SYSTEM_PROMPT
+                    });
+                    const history = getHistory(contact.id.user);
+                    const chat = model.startChat({
+                        history: history.slice(0, -1).map(m => ({
+                            role: m.role === 'assistant' ? 'model' : 'user',
+                            parts: [{ text: m.content }]
+                        }))
+                    });
+                    const result = await chat.sendMessage(rawText);
+                    reply = result.response.text();
+                    aiSuccess = true;
+                    inTokens = result.response.usageMetadata?.promptTokenCount || 0;
+                    outTokens = result.response.usageMetadata?.candidatesTokenCount || 0;
+                } else {
+                    // === GROQ (default) ===
+                    const res = await groq.chat.completions.create({
+                        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                        max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
+                        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
+                    });
+                    reply = res.choices[0].message.content;
+                    aiSuccess = true;
+                    inTokens = res.usage.prompt_tokens;
+                    outTokens = res.usage.completion_tokens;
+                }
             } catch (aiErr) {
                 console.error("AI Error:", aiErr);
                 logFeed(`AI Error: ${aiErr.message}`, 'red');
@@ -424,7 +449,8 @@ app.get('/api/status/:id', (req, res) => {
         botAktif: bot.botAktif,
         aiAktif: bot.aiAktif,
         botMenu: bot.botMenu,
-        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+        model: (process.env.AI_PROVIDER === 'gemini' ? (process.env.GEMINI_MODEL || 'gemini-1.5-flash') : (process.env.GROQ_MODEL || 'llama-3.1-8b-instant')),
+        provider: process.env.AI_PROVIDER || 'groq',
         uptimeMs: Date.now() - bot.startTime,
         totalMessagesToday: bot.totalMessagesToday,
         totalUsersToday: Object.keys(bot.userMessageCount).filter(k => bot.userMessageCount[k].date === hari).length,
