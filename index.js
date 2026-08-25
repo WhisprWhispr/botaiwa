@@ -260,7 +260,10 @@ async function startBot(botId) {
 
             // AI Processing
             let chat = null;
-            try { chat = await message.getChat(); await chat.sendStateTyping(); } catch (e) {}
+            try { 
+                chat = await message.getChat(); 
+                chat.sendStateTyping().catch(e => {}); // Don't await typing to speed up
+            } catch (e) {}
 
             addHistory(contact.id.user, 'user', rawText);
             
@@ -273,7 +276,7 @@ async function startBot(botId) {
             
             try {
                 const res = await groq.chat.completions.create({
-                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                    model: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
                     max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
                     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
                 });
@@ -283,6 +286,7 @@ async function startBot(botId) {
                 outTokens = res.usage.completion_tokens;
             } catch (aiErr) {
                 console.error("AI Error:", aiErr);
+                logFeed(`AI Error: ${aiErr.message}`, 'red');
                 throw aiErr;
             } finally {
                 const responseTime = Date.now() - startTime;
@@ -403,7 +407,7 @@ app.get('/api/status/:id', (req, res) => {
         connected: bot.isConnected,
         botAktif: bot.botAktif,
         botMenu: bot.botMenu,
-        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+        model: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
         uptimeMs: Date.now() - bot.startTime,
         totalMessagesToday: bot.totalMessagesToday,
         totalUsersToday: Object.keys(bot.userMessageCount).filter(k => bot.userMessageCount[k].date === hari).length,
