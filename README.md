@@ -100,7 +100,7 @@ pm2 startup
 
 ## ⚖️ Hak Cipta dan Lisensi
 
-**Copyright © 2026 SukaCoding & Yusril. All rights reserved.**
+**Copyright © 2026 SukaCoding - All rights reserved.**
 
 Perangkat lunak ini dilisensikan di bawah **MIT License**.
 Anda diberikan kebebasan penuh untuk menggunakan, menyalin, memodifikasi, menggabungkan, menerbitkan, dan mendistribusikan salinan perangkat lunak ini untuk keperluan pribadi maupun komersial, dengan syarat **selalu mencantumkan pemberitahuan hak cipta asli dan salinan lisensi** pada setiap rilis yang didistribusikan.
@@ -109,5 +109,5 @@ _Perangkat lunak ini disediakan "APA ADANYA", tanpa jaminan bentuk apapun._
 
 ---
 <div align="center">
-  Didesain dan dikembangkan dengan ❤️ oleh <a href="https://www.instagram.com/yusrilasrul_/">@yusrilasrul_</a> dan Tim <strong>SukaCoding</strong>.
+  Didesain dan dikembangkan dengan ❤️ oleh Tim <strong>SukaCoding</strong>.
 </div>

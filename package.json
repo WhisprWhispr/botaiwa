@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-ai-bot",
   "version": "1.0.0",
-  "description": "WhatsApp AI Bot Template — by Yusril (@yusrilasrul_)",
+  "description": "WhatsApp AI Bot Agency — by SukaCoding",
   "main": "index.js",
   "scripts": {
     "start": "node --max-old-space-size=4096 index.js",
@@ -14,7 +14,7 @@
     "groq",
     "chatbot"
   ],
-  "author": "Yusril <yusrilasrul_>",
+  "author": "SukaCoding",
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
