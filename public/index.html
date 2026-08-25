@@ -426,10 +426,14 @@
             </div>
 
             <div class="bot-controls" id="bot-controls" style="display: none;">
-              <button class="btn btn-outline btn-sm" onclick="copyClientLink()">🔗 Copy Scan Link</button>
-              <button class="btn btn-danger btn-sm" style="background: rgba(239,68,68,0.2)" onclick="controlBot('logout')">🛑 LOGOUT SESI</button>
-              <button class="btn btn-outline btn-sm" style="color: var(--green); border-color: rgba(16,185,129,0.3);" onclick="controlBot('on')">▶️ Turn ON</button>
-              <button class="btn btn-outline btn-sm" style="color: var(--red); border-color: rgba(239,68,68,0.3);" onclick="controlBot('off')">⏸ Turn OFF</button>
+              <button class="btn btn-outline btn-sm" onclick="copyClientLink()">🔗 Copy Link</button>
+              <button class="btn btn-danger btn-sm" style="background: rgba(239,68,68,0.2)" onclick="controlBot('logout')">🛑 LOGOUT</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--green); border-color: rgba(16,185,129,0.3);" onclick="controlBot('on')">▶️ ON</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--red); border-color: rgba(239,68,68,0.3);" onclick="controlBot('off')">⏸ OFF</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--purple); border-color: rgba(168,85,247,0.3);" onclick="controlBot('ai-on')">🧠 AI ON</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--amber); border-color: rgba(245,158,11,0.3);" onclick="controlBot('ai-off')">💤 AI OFF</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--blue); border-color: rgba(59,130,246,0.3);" onclick="controlBot('menu-on')">📋 Menu ON</button>
+              <button class="btn btn-outline btn-sm" style="color: var(--text-sub); border-color: rgba(255,255,255,0.1);" onclick="controlBot('menu-off')">🔕 Menu OFF</button>
             </div>
           </div>
         </div>
@@ -619,6 +623,7 @@
                   <div class="dot" style="background: ${statusColor}; box-shadow: 0 0 8px ${statusColor};"></div> 
                   ${bot.connected ? 'Connected' : 'Waiting QR'}
                 </div>
+                ${bot.connected ? `<div style="font-size: 10px; color: var(--text-sub); margin-top: 4px;">Global: <span style="color: ${bot.botAktif ? 'var(--green)' : 'var(--red)'}">${bot.botAktif ? 'ON' : 'OFF'}</span> | AI: <span style="color: ${bot.aiAktif ? 'var(--purple)' : 'var(--red)'}">${bot.aiAktif ? 'ON' : 'OFF'}</span> | Menu: <span style="color: ${bot.botMenu ? 'var(--blue)' : 'var(--red)'}">${bot.botMenu ? 'ON' : 'OFF'}</span></div>` : ''}
               </div>
             </div>
           `;

@@ -157,6 +157,7 @@ async function startBot(botId) {
         id: botId,
         client: client,
         botAktif: true,
+        aiAktif: true,
         botMenu: true,
         isConnected: false,
         currentQRCode: null,
@@ -256,10 +257,18 @@ async function startBot(botId) {
             }
 
             if (batasiPesanPerHari && cekLimitHarian(contact.id.user)) {
-                return message.reply(`Maaf Kak ${nama}, batas harian tercapai. 😊 Silakan chat besok!\nhttps://sukacoding.com` + MENU_TEXT);
+                return message.reply(`Maaf Kak ${nama}, batas harian tercapai. 😊 Silakan chat besok!\nhttps://sukacoding.com` + (state.botMenu ? MENU_TEXT : ''));
             }
 
             // AI Processing
+            if (!state.aiAktif) {
+                // Jika AI dimatikan, hanya balas menu dasar atau abaikan
+                if (state.botMenu && getHistory(contact.id.user).length <= jumlahPesanPertama) {
+                     return message.reply(MENU_TEXT);
+                }
+                return;
+            }
+
             let chat = null;
             try { 
                 chat = await message.getChat(); 
@@ -413,6 +422,7 @@ app.get('/api/status/:id', (req, res) => {
         ok: true,
         connected: bot.isConnected,
         botAktif: bot.botAktif,
+        aiAktif: bot.aiAktif,
         botMenu: bot.botMenu,
         model: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
         uptimeMs: Date.now() - bot.startTime,
@@ -436,9 +446,11 @@ app.post('/api/control/:id', async (req, res) => {
     try {
         if (action === 'on') { bot.botAktif = true; logFeed(`Turn ON <span>${bot.id}</span>`, 'green'); }
         else if (action === 'off') { bot.botAktif = false; logFeed(`Turn OFF <span>${bot.id}</span>`, 'red'); }
-        else if (action === 'menu-on') bot.botMenu = true;
-        else if (action === 'menu-off') bot.botMenu = false;
-        else if (action === 'reset') bot.chatHistory = {};
+        else if (action === 'ai-on') { bot.aiAktif = true; logFeed(`AI ON <span>${bot.id}</span>`, 'purple'); }
+        else if (action === 'ai-off') { bot.aiAktif = false; logFeed(`AI OFF <span>${bot.id}</span>`, 'amber'); }
+        else if (action === 'menu-on') { bot.botMenu = true; logFeed(`Menu ON <span>${bot.id}</span>`, 'blue'); }
+        else if (action === 'menu-off') { bot.botMenu = false; logFeed(`Menu OFF <span>${bot.id}</span>`, 'amber'); }
+        else if (action === 'reset') { bot.chatHistory = {}; logFeed(`Reset History <span>${bot.id}</span>`, 'cyan'); }
         else if (action === 'logout') {
             logFeed(`Logout <span>${bot.id}</span>`, 'red');
             try { await bot.client.logout(); } catch(e){}
