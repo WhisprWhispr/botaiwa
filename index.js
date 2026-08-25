@@ -5,6 +5,7 @@ const Groq = require('groq-sdk');
 const express = require('express');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const { executablePath } = require('puppeteer');
 require('dotenv').config();
 
@@ -366,7 +367,13 @@ app.post('/api/bots/delete-all', async (req, res) => {
             try { await bot.client.destroy(); } catch(e){}
             delete bots[id];
         }
-        res.json({ ok: true, message: 'Semua client dihapus' });
+        
+        // Menghapus permanen seluruh folder session cache WhatsApp
+        try {
+            fs.rmSync(path.join(__dirname, '.wwebjs_auth'), { recursive: true, force: true });
+        } catch(e) { console.error('Failed to rm .wwebjs_auth', e); }
+
+        res.json({ ok: true, message: 'Semua client dihapus permanen' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
