@@ -5,6 +5,7 @@
   <br/>
   <h1>🤖 WhatsApp AI Bot Agency</h1>
   <p><strong>Platform Bot WhatsApp Cerdas Berbasis AI dengan Dukungan Multi-Tenant Dashboard</strong></p>
+   <p><strong>Created by: RIDHO SANDHIKA</strong></p>
 </div>
 
 ---
@@ -109,5 +110,5 @@ _Perangkat lunak ini disediakan "APA ADANYA", tanpa jaminan bentuk apapun._
 
 ---
 <div align="center">
-  Didesain dan dikembangkan dengan ❤️ oleh Tim <strong>SukaCoding</strong>.
+  <strong>Hak Cipta © 2026 SukaCoding</strong>
 </div>
