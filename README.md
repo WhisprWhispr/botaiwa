@@ -1,233 +1,113 @@
-# 🤖 WhatsApp AI Bot — Template by Yusril
-
-Bot WhatsApp otomatis berbasis AI menggunakan **Groq API (Gratis)** dan **whatsapp-web.js**.
-Cocok untuk CS otomatis, admin toko online, atau kelas online kamu!
-
-> Dibuat oleh [@yusrilasrul_](https://www.instagram.com/yusrilasrul_/)
-
----
-
-## 📱 Tutorial Video Cara Penggunaan
-
-- YouTube: [Tutorial Lengkap](https://youtu.be/dI1IyrzaLEQ)
+<div align="center">
+  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp" />
+  <img src="https://img.shields.io/badge/AI-Gemini%20%7C%20Groq-8A2BE2?style=for-the-badge" alt="AI" />
+  <br/>
+  <h1>🤖 WhatsApp AI Bot Agency</h1>
+  <p><strong>Platform Bot WhatsApp Cerdas Berbasis AI dengan Dukungan Multi-Tenant Dashboard</strong></p>
+</div>
 
 ---
 
-## ✨ Fitur
+## 🌟 Tentang Proyek
 
-- 🤖 Balas pesan otomatis pakai AI (Groq — Gratis!)
-- 📋 Menu pilihan angka (1-6) tanpa token AI
-- 🔥 Deteksi hot lead otomatis (Opsional)
-- 🧠 AI ingat riwayat chat per user
-- 🚫 Anti spam (cooldown 3 detik)
-- 🔇 Skip grup, saluran, broadcast, status
-- 🎮 Kontrol bot dari nomor sendiri 
-- 💪 Bot tidak crash meski ada error
-- 🙋 Handover ke CS manusia + notifikasi admin otomatis
-- 📵 Pembatasan pesan per hari per user (Opsional)
-- 🖼️ Deteksi & handling pesan media
+**WhatsApp AI Bot Agency** adalah solusi bot WhatsApp cerdas yang ditenagai oleh **Groq AI** dan **Google Gemini**. Dirancang khusus untuk kebutuhan *Customer Service* (CS) modern, bot ini mampu merespons pesan secara natural, mengingat konteks percakapan, dan memiliki sistem *handover* otomatis ke agen manusia.
 
----
+Dilengkapi dengan **Web Dashboard Multi-Tenant**, Anda dapat mengelola banyak sesi WhatsApp sekaligus dalam satu tempat dengan mudah dan efisien secara visual!
 
-## 📦 Kebutuhan
+## ✨ Fitur Unggulan
 
-- Node.js v18 atau lebih baru
-- Akun Groq (gratis) → https://console.groq.com
-- WhatsApp aktif untuk di-scan QR
+- 🌐 **Web Dashboard Multi-Tenant**: Kelola banyak nomor/sesi WhatsApp sekaligus melalui antarmuka web yang modern.
+- 🧠 **Smart AI Integration**: Terintegrasi penuh dengan Groq AI (Llama 3) dan Google Gemini untuk balasan otomatis yang cerdas.
+- 💬 **Context-Aware Memory**: AI mampu mengingat riwayat percakapan per-pengguna secara dinamis.
+- 🔘 **Menu Interaktif**: Opsi fallback menu angka (1-6) yang merespons secara instan tanpa mengkonsumsi limit token AI.
+- 🔥 **Hot Lead Detection**: Deteksi otomatis kata kunci spesifik (misal: "mau beli", "daftar") untuk respons prioritas langsung.
+- 👨‍💻 **Seamless CS Handover**: Pengguna dapat meminta bantuan CS manusia, AI akan berhenti membalas dan memberikan notifikasi ke Admin.
+- 🛡️ **Anti-Spam & Limit Harian**: Perlindungan canggih dari *spammer* dengan *cooldown timer* dan batasan pesan harian.
+- 🖼️ **Media Handling**: Mendeteksi kiriman gambar/dokumen dan merespons dengan penanganan khusus.
 
----
+## 🛠️ Persyaratan Sistem
 
-## 🚀 Cara Install
+- **Node.js** (Versi 18.x atau lebih baru)
+- RAM minimal 1GB (Disarankan 2GB+ untuk penggunaan banyak sesi secara bersamaan).
+- Google Chrome atau Chromium (dibutuhkan untuk Puppeteer internal).
+- Akun [Groq Cloud](https://console.groq.com) atau [Google AI Studio](https://aistudio.google.com) untuk mendapatkan API Key secara gratis.
 
-### 1. Clone / Download project ini
+## 🚀 Panduan Instalasi (Quick Start)
 
+### 1. Instalasi Repositori
 ```bash
-# Ekstrak folder hasil download
+git clone https://github.com/WhisprWhispr/botaiwa.git
 cd whatsapp-ai-bot
-```
-
-### 2. Install dependencies
-
-```bash
 npm install
 ```
 
-### 3. Setup environment
-
+### 2. Konfigurasi Lingkungan (*Environment*)
+Salin file konfigurasi contoh dan sesuaikan dengan kredensial Anda:
 ```bash
-# Salin file contoh
 cp .env.example .env
 ```
-
-Buka file `.env` dan isi API key kamu:
-
+Buka file `.env` dan lengkapi data berikut:
 ```env
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GROQ_API_KEY=api_key_groq_anda
+GEMINI_API_KEY=api_key_gemini_anda
+AI_PROVIDER=gemini # Pilih salah satu: 'groq' atau 'gemini'
+ADMIN_ID=628xxxxxxxxxx # Nomor WhatsApp Admin untuk menerima notifikasi
 ```
 
-### 4. Cara dapat API Key Groq (Gratis)
+### 3. Menjalankan Aplikasi
+```bash
+npm run start
+```
+Sistem akan mulai berjalan secara lokal dan menyediakan *dashboard* pemantauan pada tautan **`http://localhost:3000`**.
 
-1. Buka https://console.groq.com
-2. Daftar / login pakai Google
-3. Klik **"API Keys"** di sidebar
-4. Klik **"Create API Key"**
-5. Copy API key → paste ke file `.env`
+### 4. Menyambungkan Klien WhatsApp
+1. Buka browser dan arahkan ke `http://localhost:3000`.
+2. Klik tombol **"Add New Client"** dan berikan ID sesi yang unik (contoh: `cs-pusat`).
+3. Tunggu sistem melakukan *generate*, hingga **QR Code** muncul.
+4. Buka aplikasi WhatsApp Anda > Pergi ke **Perangkat Taut** > **Tautkan Perangkat**, lalu pindai QR Code tersebut.
+5. Selesai! Bot WhatsApp AI Anda sudah mengudara!
 
-### 5. Jalankan bot
+## 🎮 Perintah Bot (Admin)
+
+Gunakan perintah (*command*) berikut dengan mengirim pesan dari nomor Admin Anda langsung ke nomor bot:
+
+| Perintah | Deskripsi Fungsi |
+| :--- | :--- |
+| `!on` | Mengaktifkan kembali respons otomatis AI |
+| `!off` | Mematikan bot (Beralih ke mode balasan manual) |
+| `!status` | Cek status aktif/non-aktif bot saat ini |
+| `!reset` | Membersihkan seluruh memori dan riwayat percakapan |
+| `!selesai [nomor]`| Menutup sesi *handover* CS untuk nomor pelanggan terkait |
+
+## ⚙️ Panduan Deployment (Produksi)
+
+Untuk penggunaan di lingkungan *server* (VPS) secara non-stop (24/7), kami sangat merekomendasikan penggunaan **PM2 Process Manager**.
 
 ```bash
-node index.js
-```
-
-6. Scan QR Code yang muncul di terminal pakai WhatsApp kamu
-7. Bot siap digunakan! ✅
-
----
-
-## ⚙️ Kustomisasi
-
-### Ubah kepribadian AI
-
-Buka `index.js`, cari bagian `SYSTEM_PROMPT` dan ubah sesuai bisnis kamu:
-
-```javascript
-const SYSTEM_PROMPT = `Kamu adalah [nama admin], admin [nama bisnis kamu].
-
-Gaya:
-- ramah, santai
-- jawab singkat
-
-Informasi bisnis:
-- Nama: [nama bisnis]
-- Website: [website kamu]
-- Harga: [harga produk]
-- ...`;
-```
-
-### Ubah menu
-
-Cari bagian `handleMenu` dan ubah teks balasan sesuai kebutuhan:
-
-```javascript
-const handleMenu = (text) => {
-    if (text === '1') {
-        return 'Balasan untuk menu 1...';
-    }
-    if (text === '2') {
-        return 'Balasan untuk menu 2...';
-    }
-    // tambah menu lainnya...
-};
-```
-
-### Ubah deteksi hot lead
-
-Cari `hotKeywords` dan tambahkan kata kunci yang relevan:
-
-```javascript
-const hotKeywords = ['mau daftar', 'mau beli', 'tertarik', 'berapa harganya'];
-```
-
----
-
-## 🎮 Perintah Kontrol Bot
-
-Kirim perintah ini ke **nomor kamu sendiri** (chat dengan diri sendiri di WhatsApp):
-
-| Perintah | Fungsi |
-|----------|--------|
-| `!on` | Aktifkan bot |
-| `!off` | Matikan bot (kamu yang balas manual) |
-| `!status` | Cek status bot aktif/nonaktif |
-| `!reset` | Reset semua riwayat chat |
-| `!help` | Tampilkan daftar perintah |
-
----
-
-## 🖥️ Deploy dengan PM2 (Agar Bot Jalan Terus)
- 
-### Install PM2
- 
-```bash
+# Instalasi PM2 secara global
 npm install -g pm2
-```
- 
-### Jalankan bot dengan PM2
- 
-```bash
-pm2 start index.js --name wabot
+
+# Menjalankan bot dengan PM2
+pm2 start index.js --name "bot-ai-wabot"
+
+# Menyimpan konfigurasi agar otomatis berjalan saat server restart
 pm2 save
+pm2 startup
 ```
- 
-### Perintah PM2 yang berguna
- 
-```bash
-pm2 list              # Lihat status bot
-pm2 logs wabot        # Lihat logs & QR Code
-pm2 restart wabot     # Restart bot
-pm2 stop wabot        # Stop bot
-pm2 delete wabot      # Hapus bot dari PM2
-```
- 
-### Auto start saat Windows restart
- 
-Buat file `start-bot.bat`:
- 
-```bat
-@echo off
-pm2 resurrect
-```
-
-Buat file `start-bot.vbs`:
- 
-```bat
-Set WshShell = CreateObject("WScript.Shell")
-WshShell.Run "cmd.exe /k D:\YOUR_LOCATION\start-bot.bat", 1, False
-```
- 
-Letakkan shortcut file start-bot.vbs ini di:
- 
-```
-C:\Users\[username]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
-```
- 
----
-
-## 📊 Limit Groq Gratis
-
-| Model | Request/menit | Token/hari |
-|-------|--------------|------------|
-| llama-3.1-8b-instant | 30 | 500.000 |
-| llama-3.3-70b-versatile | 30 | 100.000 |
-
-Dengan penggunaan ~300 token/pesan, kamu bisa handle **±1.600 pesan/hari secara gratis!**
 
 ---
 
-## ❓ FAQ
+## ⚖️ Hak Cipta dan Lisensi
 
-**Q: Apakah nomor WhatsApp bisa kena banned?**
-A: Risiko ada tapi kecil selama tidak dipakai untuk spam. Bot ini dirancang untuk CS, bukan blast pesan massal.
+**Copyright © 2026 SukaCoding & Yusril. All rights reserved.**
 
-**Q: Apakah perlu bayar?**
-A: Groq API gratis dengan limit harian yang cukup besar. Tidak perlu kartu kredit.
+Perangkat lunak ini dilisensikan di bawah **MIT License**.
+Anda diberikan kebebasan penuh untuk menggunakan, menyalin, memodifikasi, menggabungkan, menerbitkan, dan mendistribusikan salinan perangkat lunak ini untuk keperluan pribadi maupun komersial, dengan syarat **selalu mencantumkan pemberitahuan hak cipta asli dan salinan lisensi** pada setiap rilis yang didistribusikan.
 
-**Q: Bisa dipakai untuk bisnis apa saja?**
-A: Bisa! Tinggal ubah `SYSTEM_PROMPT` dan `handleMenu` sesuai bisnis kamu.
-
-**Q: Bagaimana kalau QR expired?**
-A: Jalankan ulang `node index.js` atau `pm2 restart wabot`, scan QR baru.
+_Perangkat lunak ini disediakan "APA ADANYA", tanpa jaminan bentuk apapun._
 
 ---
-
-## 📱 Kontak & Support
-
-- Instagram: [@yusrilasrul_](https://www.instagram.com/yusrilasrul_/)
-- YouTube: [Tutorial Lengkap](https://youtube.com/link-kamu)
----
-
-## 📄 Lisensi
-
-Template ini untuk penggunaan pribadi dan komersial.
-
-© 2026 Yusril
+<div align="center">
+  Didesain dan dikembangkan dengan ❤️ oleh <a href="https://www.instagram.com/yusrilasrul_/">@yusrilasrul_</a> dan Tim <strong>SukaCoding</strong>.
+</div>
