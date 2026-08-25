@@ -152,6 +152,10 @@ async function startBot(botId) {
         puppeteer: {
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || chromePath,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        },
+        webVersionCache: {
+            type: 'remote',
+            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
         }
     });
 
