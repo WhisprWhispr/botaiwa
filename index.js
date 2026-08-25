@@ -10,7 +10,7 @@ const fs = require('fs');
 const { executablePath } = require('puppeteer');
 require('dotenv').config();
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 const ADMIN_ID = process.env.ADMIN_ID;
 
@@ -287,10 +287,21 @@ async function startBot(botId) {
             let reply = '';
             
             try {
-                const provider = process.env.AI_PROVIDER || 'groq';
+                const provider = process.env.AI_PROVIDER || 'gemini';
 
-                if (provider === 'gemini' && genAI) {
-                    // === GOOGLE GEMINI ===
+                if (provider === 'groq' && groq) {
+                    // === GROQ ===
+                    const res = await groq.chat.completions.create({
+                        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                        max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
+                        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
+                    });
+                    reply = res.choices[0].message.content;
+                    aiSuccess = true;
+                    inTokens = res.usage.prompt_tokens;
+                    outTokens = res.usage.completion_tokens;
+                } else if (genAI) {
+                    // === GOOGLE GEMINI (default) ===
                     const model = genAI.getGenerativeModel({
                         model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
                         systemInstruction: SYSTEM_PROMPT
@@ -308,16 +319,7 @@ async function startBot(botId) {
                     inTokens = result.response.usageMetadata?.promptTokenCount || 0;
                     outTokens = result.response.usageMetadata?.candidatesTokenCount || 0;
                 } else {
-                    // === GROQ (default) ===
-                    const res = await groq.chat.completions.create({
-                        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                        max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
-                        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
-                    });
-                    reply = res.choices[0].message.content;
-                    aiSuccess = true;
-                    inTokens = res.usage.prompt_tokens;
-                    outTokens = res.usage.completion_tokens;
+                    throw new Error("Tidak ada API Key yang dikonfigurasi. Pastikan GEMINI_API_KEY telah diisi.");
                 }
             } catch (aiErr) {
                 console.error("AI Error:", aiErr);
@@ -449,8 +451,8 @@ app.get('/api/status/:id', (req, res) => {
         botAktif: bot.botAktif,
         aiAktif: bot.aiAktif,
         botMenu: bot.botMenu,
-        model: (process.env.AI_PROVIDER === 'gemini' ? (process.env.GEMINI_MODEL || 'gemini-1.5-flash') : (process.env.GROQ_MODEL || 'llama-3.1-8b-instant')),
-        provider: process.env.AI_PROVIDER || 'groq',
+        model: (process.env.AI_PROVIDER === 'groq' ? (process.env.GROQ_MODEL || 'llama-3.1-8b-instant') : (process.env.GEMINI_MODEL || 'gemini-1.5-flash')),
+        provider: process.env.AI_PROVIDER || 'gemini',
         uptimeMs: Date.now() - bot.startTime,
         totalMessagesToday: bot.totalMessagesToday,
         totalUsersToday: Object.keys(bot.userMessageCount).filter(k => bot.userMessageCount[k].date === hari).length,
