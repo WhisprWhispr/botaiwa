@@ -286,7 +286,7 @@ async function startBot(botId) {
             
             try {
                 const res = await groq.chat.completions.create({
-                    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
                     max_tokens: parseInt(process.env.MAX_TOKENS) || 250,
                     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...getHistory(contact.id.user)]
                 });
@@ -424,7 +424,7 @@ app.get('/api/status/:id', (req, res) => {
         botAktif: bot.botAktif,
         aiAktif: bot.aiAktif,
         botMenu: bot.botMenu,
-        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
         uptimeMs: Date.now() - bot.startTime,
         totalMessagesToday: bot.totalMessagesToday,
         totalUsersToday: Object.keys(bot.userMessageCount).filter(k => bot.userMessageCount[k].date === hari).length,
