@@ -110,5 +110,5 @@ _Perangkat lunak ini disediakan "APA ADANYA", tanpa jaminan bentuk apapun._
 
 ---
 <div align="center">
-  <strong>Hak Cipta © 2026 SukaCoding</strong>
+  <strong> © 2026 SukaCoding - All rights reserved.</strong>
 </div>
