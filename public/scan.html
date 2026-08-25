@@ -4,105 +4,322 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SukaCoding — Sambungkan WhatsApp</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #3b82f6;
+      --cyan: #06b6d4;
+      --purple: #a855f7;
+      --green: #10b981;
+      --red: #ef4444;
+    }
+
     body {
-      font-family: 'Outfit', sans-serif;
-      background: #060B19;
-      color: #F8FAFC;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      background: #030712;
+      color: #f8fafc;
       min-height: 100vh;
-      background-image: radial-gradient(circle at top, rgba(56,189,248,0.1) 0%, transparent 50%), radial-gradient(circle at bottom, rgba(139,92,246,0.1) 0%, transparent 50%);
-    }
-    .card {
-      background: rgba(18, 30, 56, 0.4);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      border-radius: 24px;
-      padding: 40px;
-      text-align: center;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-      max-width: 400px;
-      width: 90%;
-    }
-    h1 { font-size: 24px; margin-bottom: 8px; color: #F8FAFC; }
-    p.sub { font-size: 15px; color: #94A3B8; margin-bottom: 30px; }
-    #qr-container {
-      min-height: 250px;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-    #qr-img {
-      width: 250px; height: 250px;
-      border-radius: 20px;
-      border: 4px solid #38BDF8;
-      padding: 10px; background: white;
-      display: none;
-    }
-    .placeholder {
-      width: 250px; height: 250px;
-      border-radius: 20px;
-      border: 2px dashed rgba(56,189,248,0.4);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      color: #94A3B8;
-    }
-    .placeholder span { font-size: 40px; margin-bottom: 10px; }
-    .success {
-      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
+      position: relative;
     }
-    .success .check {
-      font-size: 70px;
-      filter: drop-shadow(0 0 20px rgba(16,185,129,0.4));
-      margin-bottom: 16px;
+
+    /* Animated background particles */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
-    #timer { font-size: 14px; color: #475569; }
-    #timer span { color: #38BDF8; font-weight: bold; }
-    .footer { font-size: 12px; color: #475569; margin-top: 30px; }
+    .bg-glow-1 {
+      position: fixed; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+      top: -200px; left: -200px; z-index: 0; animation: float1 8s ease-in-out infinite;
+    }
+    .bg-glow-2 {
+      position: fixed; width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%);
+      bottom: -200px; right: -200px; z-index: 0; animation: float2 10s ease-in-out infinite;
+    }
+    @keyframes float1 { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(40px, 40px); } }
+    @keyframes float2 { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(-30px, -30px); } }
+
+    /* Header bar */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px;
+      background: rgba(3,7,18,0.8);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo {
+      font-family: monospace; font-size: 18px; font-weight: 900;
+      background: linear-gradient(135deg, #3b82f6, #a855f7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .topbar-name { font-size: 14px; font-weight: 700; color: #f8fafc; }
+    .topbar-sub { font-size: 11px; color: #475569; }
+    .topbar-live {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 600;
+      color: var(--green);
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+    /* Main container */
+    .wrap {
+      position: relative; z-index: 10;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 24px; width: 100%; max-width: 440px; padding: 20px;
+    }
+
+    /* Client ID Badge */
+    .client-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 20px; padding: 8px 18px; font-size: 13px;
+      color: #93c5fd; font-weight: 600;
+    }
+
+    /* Main card */
+    .card {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px; padding: 36px;
+      text-align: center;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+      position: relative; overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 60%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent);
+    }
+
+    .card-icon {
+      width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 20px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(168,85,247,0.2));
+      border: 1px solid rgba(59,130,246,0.3);
+      display: flex; align-items: center; justify-content: center; font-size: 28px;
+    }
+
+    .card-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .card-sub { font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 28px; }
+
+    /* QR Box */
+    #qr-container {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 260px; margin-bottom: 20px;
+    }
+
+    #qr-img {
+      width: 240px; height: 240px;
+      border-radius: 16px; padding: 10px; background: white;
+      display: none;
+      border: 2px solid rgba(59,130,246,0.4);
+      box-shadow: 0 0 40px rgba(59,130,246,0.2);
+      animation: qr-appear 0.4s ease;
+    }
+    @keyframes qr-appear { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+    /* Scanning corner marks */
+    .qr-frame {
+      position: relative; display: none;
+    }
+    .qr-frame::before, .qr-frame::after,
+    .qr-frame span::before, .qr-frame span::after {
+      content: ''; position: absolute; width: 20px; height: 20px; border-color: var(--cyan); border-style: solid;
+    }
+    .qr-frame::before { top: -4px; left: -4px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .qr-frame::after  { top: -4px; right: -4px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .qr-frame span::before { bottom: -4px; left: -4px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .qr-frame span::after  { bottom: -4px; right: -4px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+    /* Scanner line animation */
+    .scan-line {
+      position: absolute; top: 0; left: 10px; right: 10px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: scan 2.5s ease-in-out infinite;
+      box-shadow: 0 0 10px var(--cyan);
+      display: none;
+    }
+    @keyframes scan { 0% { top: 10px; opacity: 1; } 95% { top: 225px; opacity: 1; } 100% { top: 230px; opacity: 0; } }
+
+    /* Placeholder */
+    .placeholder {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 240px; height: 240px;
+      border-radius: 16px;
+      border: 2px dashed rgba(59,130,246,0.3);
+      background: rgba(59,130,246,0.04);
+      color: #475569; gap: 12px;
+    }
+    .placeholder-icon { font-size: 42px; animation: spin-slow 3s linear infinite; }
+    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .placeholder-text { font-size: 13px; font-weight: 500; }
+
+    /* Success state */
+    .success {
+      display: none; flex-direction: column; align-items: center; gap: 16px;
+      animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes pop-in { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+    .success-ring {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: rgba(16,185,129,0.1); border: 2px solid rgba(16,185,129,0.3);
+      display: flex; align-items: center; justify-content: center; font-size: 48px;
+      box-shadow: 0 0 40px rgba(16,185,129,0.2);
+    }
+    .success h2 { font-size: 22px; font-weight: 800; color: var(--green); }
+    .success p { font-size: 13px; color: #64748b; }
+
+    /* Progress bar */
+    .progress-wrap {
+      margin-top: 4px;
+      background: rgba(255,255,255,0.05); border-radius: 20px; height: 4px; overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%; border-radius: 20px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      transition: width 1s linear;
+    }
+
+    #timer-text {
+      font-size: 12px; color: #475569; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    #timer-text span { color: var(--cyan); font-weight: 700; font-size: 14px; }
+
+    /* Steps */
+    .steps {
+      display: flex; flex-direction: column; gap: 10px;
+      background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.1);
+      border-radius: 16px; padding: 20px; text-align: left;
+    }
+    .steps-title { font-size: 12px; font-weight: 700; color: #64748b; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+    .step { display: flex; align-items: flex-start; gap: 12px; }
+    .step-num {
+      min-width: 24px; height: 24px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    }
+    .step-text { font-size: 13px; color: #94a3b8; line-height: 1.5; padding-top: 3px; }
+    .step-text strong { color: #f8fafc; }
+
+    /* Footer */
+    .page-footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      text-align: center; padding: 16px;
+      font-size: 12px; color: #1e293b; z-index: 100;
+    }
+    .page-footer span { color: #334155; }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <div style="font-family: monospace; font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #38BDF8, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px;">
-      &lt;/&gt;
-    </div>
-    <h1>Koneksi WhatsApp</h1>
-    <p class="sub">Silakan scan QR Code di bawah menggunakan WhatsApp di HP kamu (Perangkat Taut).</p>
-    
-    <div id="qr-container">
-      <div class="placeholder" id="placeholder">
-        <span>⏳</span>
-        <p>Memuat QR Code...</p>
+  <div class="bg-grid"></div>
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">&lt;/&gt;</div>
+      <div>
+        <div class="topbar-name">SukaCoding</div>
+        <div class="topbar-sub">AI Bot Service</div>
       </div>
-      <img id="qr-img" src="" alt="QR Code" />
-      <div class="success" id="success">
-        <div class="check">✅</div>
-        <h2>Berhasil Terhubung!</h2>
-        <p style="color: #94A3B8; font-size: 14px; margin-top: 8px;">Bot sudah siap digunakan.</p>
+    </div>
+    <div class="topbar-live">
+      <div class="live-dot"></div>
+      LIVE SESSION
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="wrap">
+    
+    <!-- Client Badge -->
+    <div class="client-badge">
+      🤖 <span id="bot-label">Memuat client...</span>
+    </div>
+
+    <!-- Card -->
+    <div class="card">
+      <div class="card-icon" id="main-icon">📱</div>
+      <h1 class="card-title" id="card-title">Koneksi WhatsApp</h1>
+      <p class="card-sub" id="card-sub">Silakan scan QR Code menggunakan WhatsApp di HP kamu melalui menu <strong>Perangkat Taut</strong>.</p>
+
+      <!-- QR Section -->
+      <div id="qr-container">
+        <div class="placeholder" id="placeholder">
+          <div class="placeholder-icon">⏳</div>
+          <div class="placeholder-text">Memuat QR Code...</div>
+        </div>
+
+        <div style="position: relative; display: none;" id="qr-frame-wrap">
+          <img id="qr-img" src="" alt="QR Code" />
+          <div class="scan-line" id="scan-line"></div>
+        </div>
+
+        <div class="success" id="success">
+          <div class="success-ring">✅</div>
+          <h2>Berhasil Terhubung!</h2>
+          <p>Bot AI sudah aktif dan siap melayani pesan.</p>
+        </div>
+      </div>
+
+      <!-- Progress Timer -->
+      <div id="timer-section">
+        <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width: 100%;"></div></div>
+        <div id="timer-text">Refresh otomatis dalam <span id="countdown">30</span>s</div>
       </div>
     </div>
 
-    <div id="timer">Refresh otomatis dalam <span id="countdown">30</span>s</div>
-    
-    <div class="footer">SukaCoding AI Bot Service</div>
+    <!-- Step guide -->
+    <div class="steps" id="step-guide">
+      <div class="steps-title">📋 Cara Scan QR Code</div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">Buka WhatsApp di HP kamu dan tap ikon <strong>⋮ (tiga titik)</strong> di pojok kanan atas.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">Pilih <strong>"Perangkat Taut"</strong> lalu tap <strong>"Tambahkan perangkat"</strong>.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">Arahkan kamera HP ke QR Code di atas, lalu tunggu beberapa detik hingga terhubung.</div>
+      </div>
+    </div>
+
   </div>
+
+  <div class="page-footer">Powered by <span>SukaCoding AI Agency</span> &copy; 2025</div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const botId = urlParams.get('bot');
     
+    document.getElementById('bot-label').textContent = botId ? `Client: ${botId}` : 'ID Tidak Valid';
+
     if (!botId) {
-      document.getElementById('placeholder').innerHTML = '<span style="font-size:30px">❌</span><p>ID Bot tidak valid</p>';
-      document.getElementById('timer').style.display = 'none';
+      document.getElementById('placeholder').innerHTML = '<div class="placeholder-icon">❌</div><div class="placeholder-text">ID Bot tidak valid</div>';
+      document.getElementById('timer-section').style.display = 'none';
+      document.getElementById('step-guide').style.display = 'none';
     } else {
       let timerVal = 30;
       let interval = null;
@@ -110,53 +327,79 @@
       async function checkQR() {
         try {
           const res = await fetch(`/api/qr/${botId}`);
-          if (!res.ok) throw new Error('Bot not found');
+          if (!res.ok) throw new Error('not found');
           const data = await res.json();
           
           if (data.connected) {
-            document.getElementById('placeholder').style.display = 'none';
-            document.getElementById('qr-img').style.display = 'none';
-            document.getElementById('success').style.display = 'flex';
-            document.getElementById('timer').style.display = 'none';
-            if(interval) clearInterval(interval);
+            showSuccess();
           } else if (data.qr) {
-            document.getElementById('placeholder').style.display = 'none';
-            document.getElementById('qr-img').src = data.qr;
-            document.getElementById('qr-img').style.display = 'block';
-            resetTimer();
+            showQR(data.qr);
           } else {
-            // QR belum siap
-            document.getElementById('placeholder').style.display = 'flex';
-            document.getElementById('qr-img').style.display = 'none';
+            showLoading();
           }
         } catch (err) {
-          document.getElementById('placeholder').innerHTML = '<span style="font-size:30px">❌</span><p>Bot tidak ditemukan atau offline</p>';
-          document.getElementById('timer').style.display = 'none';
+          document.getElementById('placeholder').innerHTML = '<div class="placeholder-icon">❌</div><div class="placeholder-text">Bot tidak ditemukan atau offline</div>';
+          document.getElementById('placeholder').style.display = 'flex';
+          document.getElementById('qr-frame-wrap').style.display = 'none';
+          document.getElementById('timer-section').style.display = 'none';
         }
       }
 
+      function showLoading() {
+        document.getElementById('placeholder').style.display = 'flex';
+        document.getElementById('qr-frame-wrap').style.display = 'none';
+        document.getElementById('success').style.display = 'none';
+      }
+
+      function showQR(qrData) {
+        document.getElementById('placeholder').style.display = 'none';
+        document.getElementById('qr-img').src = qrData;
+        document.getElementById('qr-img').style.display = 'block';
+        document.getElementById('qr-frame-wrap').style.display = 'block';
+        document.getElementById('scan-line').style.display = 'block';
+        document.getElementById('success').style.display = 'none';
+        resetTimer();
+      }
+
+      function showSuccess() {
+        if (interval) clearInterval(interval);
+        document.getElementById('placeholder').style.display = 'none';
+        document.getElementById('qr-frame-wrap').style.display = 'none';
+        document.getElementById('success').style.display = 'flex';
+        document.getElementById('timer-section').style.display = 'none';
+        document.getElementById('step-guide').style.display = 'none';
+
+        document.getElementById('main-icon').textContent = '🎉';
+        document.getElementById('card-title').textContent = 'Bot Aktif!';
+        document.getElementById('card-sub').textContent = 'WhatsApp sudah terhubung. Bot AI SukaCoding kamu sudah berjalan dan siap merespon pesan pelanggan.';
+        document.getElementById('card-sub').style.color = 'var(--green)';
+      }
+
       function resetTimer() {
-        if(interval) clearInterval(interval);
+        if (interval) clearInterval(interval);
         timerVal = 30;
-        document.getElementById('countdown').innerText = timerVal;
+        document.getElementById('countdown').textContent = timerVal;
+        document.getElementById('progress-bar').style.width = '100%';
+
         interval = setInterval(() => {
           timerVal--;
-          document.getElementById('countdown').innerText = timerVal;
-          if(timerVal <= 0) {
+          document.getElementById('countdown').textContent = timerVal;
+          document.getElementById('progress-bar').style.width = (timerVal / 30 * 100) + '%';
+          if (timerVal <= 0) {
             clearInterval(interval);
             checkQR();
           }
         }, 1000);
       }
 
-      // Initial check
+      // Initial + polling
       checkQR();
-      
-      // Auto ping status if connected to prevent stale UI
       setInterval(async () => {
-         const res = await fetch(`/api/status/${botId}`);
-         const d = await res.json();
-         if(d.connected) checkQR(); // Will show success UI
+        try {
+          const res = await fetch(`/api/status/${botId}`);
+          const d = await res.json();
+          if (d.ok && d.connected) showSuccess();
+        } catch(e) {}
       }, 5000);
     }
   </script>
