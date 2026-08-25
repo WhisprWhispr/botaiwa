@@ -4,8 +4,8 @@
   "description": "WhatsApp AI Bot Template — by Yusril (@yusrilasrul_)",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "node --max-old-space-size=4096 index.js",
+    "dev": "node --max-old-space-size=4096 --watch index.js"
   },
   "keywords": [
     "whatsapp",
